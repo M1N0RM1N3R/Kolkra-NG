@@ -18,4 +18,4 @@ RUN poetry install --no-interaction --no-ansi --no-root --no-dev
 # Copy Python code to the Docker image
 COPY kolkra_ng /code/kolkra_ng/
 
-CMD [ "python", "kolkra_ng/foo.py"]
+CMD [ "python", "kolkra_ng/main.py"]
