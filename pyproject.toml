@@ -2,7 +2,7 @@
 name = "kolkra_ng"
 version = "0.0.1"
 description = "The next generation of Kolkra, the Splatfest server's custom utility bot."
-authors = ["M1N3R <fm1n0rm1n3r+foss@proton.me>"]
+authors = ["M1N3R <m1n0rm1n3r+foss@proton.me>"]
 repository = "https://github.com/m1n0rm1n3r/Kolkra-NG"
 documentation = "https://m1n0rm1n3r.github.io/Kolkra-NG/"
 readme = "README.md"
