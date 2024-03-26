@@ -20,28 +20,16 @@ psutil = "^5.9.8"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
-mypy = "^1.5.1"
 pre-commit = "^3.4.0"
 tox = "^4.11.1"
+pyright = "^1.1.355"
 
-
+[tool.pyright]
+typeCheckingMode = "strict"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.mypy]
-files = ["kolkra_ng"]
-disallow_untyped_defs = "True"
-disallow_any_unimported = "True"
-no_implicit_optional = "True"
-check_untyped_defs = "True"
-warn_return_any = "True"
-warn_unused_ignores = "True"
-show_error_codes = "True"
-install_types = "True"
-non_interactive = "True"
-pretty = "True"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
