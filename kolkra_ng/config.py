@@ -8,7 +8,11 @@ from pydantic import BaseModel, JsonValue, MongoDsn, SecretStr, field_validator
 class Config(BaseModel):
     bot_token: SecretStr
     guild_id: int
-    mongodb_url: MongoDsn = MongoDsn("mongodb://127.0.0.1:27017")  # pyright: ignore [reportCallIssue]
+    mongodb_url: MongoDsn = (  # pyright: ignore [reportUnknownVariableType]
+        MongoDsn(  # pyright: ignore [reportCallIssue]
+            "mongodb://127.0.0.1:27017"
+        )
+    )
 
     @field_validator("bot_token", mode="after")
     @classmethod
@@ -28,4 +32,6 @@ def read_config(*paths: str) -> Config:
     for path in paths:
         with open(path, "rb") as f:
             data |= tomli.load(f)
-    return Config(**data)  # type:ignore [arg-type]
+    return Config(
+        **data  # pyright: ignore [reportArgumentType] # Pydantic will coerce our data for us.
+    )
