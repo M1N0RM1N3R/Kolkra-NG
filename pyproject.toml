@@ -16,6 +16,7 @@ pydantic = "^2.6.4"
 rich = "^13.7.1"
 discord-py = "^2.3.2"
 odmantic = "^1.0.1"
+psutil = "^5.9.8"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
@@ -38,6 +39,9 @@ check_untyped_defs = "True"
 warn_return_any = "True"
 warn_unused_ignores = "True"
 show_error_codes = "True"
+install_types = "True"
+non_interactive = "True"
+pretty = "True"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
