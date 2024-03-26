@@ -2,12 +2,13 @@ import re
 from typing import Any
 
 import tomli
-from pydantic import BaseModel, SecretStr, field_validator
+from pydantic import BaseModel, JsonValue, MongoDsn, SecretStr, field_validator
 
 
 class Config(BaseModel):
     bot_token: SecretStr
     guild_id: int
+    mongodb_url: MongoDsn = MongoDsn("mongodb://127.0.0.1:27017")  # pyright: ignore [reportCallIssue]
 
     @field_validator("bot_token", mode="after")
     @classmethod
@@ -22,7 +23,9 @@ class Config(BaseModel):
         return value
 
 
-def read_config(path: str = "config.toml") -> Config:
-    with open(path, "rb") as f:
-        data = tomli.load(f)
-    return Config(**data)
+def read_config(*paths: str) -> Config:
+    data: dict[str, JsonValue] = {}
+    for path in paths:
+        with open(path, "rb") as f:
+            data |= tomli.load(f)
+    return Config(**data)  # type:ignore [arg-type]
