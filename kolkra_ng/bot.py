@@ -14,7 +14,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from odmantic import AIOEngine
 
 from kolkra_ng.config import Config
-from kolkra_ng.error_handling import handle_command_error
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ class KolkraContext(commands.Context["Kolkra"]):
     def invocation_id(self) -> str:
         return f"I{self.interaction.id}" if self.interaction else f"P{self.message.id}"
 
-    async def respond(self, *args: Any, **kwargs: Any) -> WebhookMessage | Message | None:
+    async def respond(self, *args: Any, ephemeral: bool = False, **kwargs: Any) -> WebhookMessage | Message | None:
         """Sends a response to a command invocation; as a reply to a prefix
         invocation, a message response to an interaction, or a follow-up
         message to a responded interaction.
@@ -38,9 +37,10 @@ class KolkraContext(commands.Context["Kolkra"]):
         """
         if self.interaction is not None:
             if self.interaction.response.is_done():
-                return await self.interaction.followup.send(*args, **kwargs)
+                return await self.interaction.followup.send(*args, ephemeral=ephemeral, **kwargs)
             else:
-                await self.interaction.response.send_message(*args, **kwargs)
+                await self.interaction.response.send_message(*args, ephemeral=ephemeral, **kwargs)
+                return
         return await self.message.reply(*args, **kwargs)
 
 
@@ -111,4 +111,6 @@ class Kolkra(commands.Bot):
     async def on_command_error(  # pyright: ignore [reportIncompatibleMethodOverride]
         self, context: KolkraContext, exception: commands.CommandError, /
     ) -> None:
+        from kolkra_ng.error_handling import handle_command_error
+
         await handle_command_error(context, exception)
