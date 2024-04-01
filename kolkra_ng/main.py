@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from pathlib import Path
 
 import discord
 from rich.logging import RichHandler
@@ -23,7 +24,7 @@ logging.basicConfig(
 
 async def main() -> None:
     """The main entrypoint."""
-    config = read_config("config.toml")
+    config = read_config(Path("config.toml"))
     bot = Kolkra(config)
     await bot.load_extension("cogs")
     try:

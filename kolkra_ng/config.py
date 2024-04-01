@@ -1,8 +1,16 @@
 import re
+from pathlib import Path
 from typing import Any
 
 import tomli
-from pydantic import BaseModel, JsonValue, MongoDsn, SecretStr, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    JsonValue,
+    MongoDsn,
+    SecretStr,
+    field_validator,
+)
 
 
 class Config(BaseModel):
@@ -13,6 +21,8 @@ class Config(BaseModel):
             "mongodb://127.0.0.1:27017"
         )
     )
+
+    cogs: dict[str, dict[str, JsonValue]] = Field(default_factory=dict)
 
     @field_validator("bot_token", mode="after")
     @classmethod
@@ -27,7 +37,7 @@ class Config(BaseModel):
         return value
 
 
-def read_config(*paths: str) -> Config:
+def read_config(*paths: Path) -> Config:
     data: dict[str, JsonValue] = {}
     for path in paths:
         with open(path, "rb") as f:
