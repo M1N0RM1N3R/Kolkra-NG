@@ -17,6 +17,7 @@ rich = "^13.7.1"
 discord-py = "^2.3.2"
 odmantic = "^1.0.1"
 psutil = "^5.9.8"
+dateparser = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
