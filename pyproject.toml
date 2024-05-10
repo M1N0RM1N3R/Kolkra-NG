@@ -14,7 +14,7 @@ rich = "^13.7.1"
 #discord-py = "^2.3.2"
 psutil = "^5.9.8"
 dateparser = "^1.2.0"
-pydantic = "^2.7.0"
+pydantic = {extras = ["email"], version = "^2.7.1"}
 beanie = "^1.25.0"
 humanize = "^4.9.0"
 openskill = "^5.1.1"
