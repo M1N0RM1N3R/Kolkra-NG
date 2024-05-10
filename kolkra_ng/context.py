@@ -1,17 +1,15 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
 from discord import Message
 from discord.ext import commands
 
 if TYPE_CHECKING:
-    from kolkra_ng.bot import Kolkra
+    from kolkra_ng.bot import Kolkra  # noqa: F401
 
 DEFER_REACTION = "⏳"
 
 
-class KolkraContext(commands.Context[Kolkra]):
+class KolkraContext(commands.Context["Kolkra"]):
     __prefix_deferred = False
 
     @property
