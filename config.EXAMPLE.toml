@@ -1,0 +1,37 @@
+# Discord bot token. Check out https://discord.com/developers to set up a bot account and get a token for it.
+bot_token = "YOURBOTTOKEN"
+guild = 1234567890123456789       # The server ID to register commands in.
+log_channel = 1234567890123456789 # The channel ID to post log messages in.
+
+# Role IDs for each staff level.
+# The permission_role is mandatory, but you may also include a list of one or more cosmetic_roles for each staff level.
+[staff_roles.owner]
+permission_role = 1234567890123456789
+
+[staff_roles.admin]
+permission_role = 1234567890123456789
+cosmetic_roles = [1234567890123456789, 9876543210987654321]
+
+[staff_roles.mod]
+permission_role = 1234567890123456789
+cosmetic_roles = [1234567890123456789, 9876543210987654321]
+
+[staff_roles.arbit]
+permission_role = 1234567890123456789
+cosmetic_roles = [1234567890123456789, 9876543210987654321]
+
+[staff_roles.council]
+permission_role = 1234567890123456789
+cosmetic_roles = [1234567890123456789, 9876543210987654321]
+
+# Module-specific configurations.
+# Look for a Pydantic model named, e.g., FooConfig, in each module in kolkra_ng/cogs/* for what
+# config fields it accepts.
+[cogs.WelcomeCog]
+channel = 1234567890123456789
+
+[cogs.PingRateLimitsCog.rate_limits]
+1234567890123456789 = { per = 120 }
+0987654321098765432 = { per = 120 }
+2345678901234567890 = { per = 120 }
+6789054311234567890 = { per = 120 }

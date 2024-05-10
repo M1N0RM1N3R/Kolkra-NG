@@ -169,3 +169,5 @@ cython_debug/
 # Ignore the config file--it's different across different environments and contains secrets--a
 # double-whammy for things you don't want to be tracked in Git.
 config.toml
+
+node_modules

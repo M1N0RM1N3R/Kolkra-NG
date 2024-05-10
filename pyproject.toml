@@ -6,27 +6,36 @@ authors = ["M1N3R <m1n0rm1n3r+foss@proton.me>"]
 repository = "https://github.com/m1n0rm1n3r/Kolkra-NG"
 documentation = "https://m1n0rm1n3r.github.io/Kolkra-NG/"
 readme = "README.md"
-packages = [
-  {include = "kolkra_ng"}
-]
+packages = [{ include = "kolkra_ng" }]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0"
-pydantic = "2.6.4" # https://github.com/art049/odmantic/issues/451#issuecomment-2053952453
+python = ">=3.9,<4.0"
 rich = "^13.7.1"
-discord-py = "^2.3.2"
-odmantic = "^1.0.1"
+#discord-py = "^2.3.2"
 psutil = "^5.9.8"
 dateparser = "^1.2.0"
+pydantic = "^2.7.0"
+beanie = "^1.25.0"
+humanize = "^4.9.0"
+openskill = "^5.1.1"
+numpy = "^1.26.4"
+emoji = "^2.11.1"
+discord-py = { git = "https://github.com/Rapptz/discord.py.git", rev = "master" }
+jishaku = "^2.5.2"
+pydantic-extra-types = "^2.7.0"
+wonderwords = "^2.2.0"
+phonenumbers = "^8.13.36"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
 pre-commit = "^3.4.0"
-tox = "^4.11.1"
 pyright = "^1.1.355"
+matplotlib = "^3.8.4"
 
 [tool.pyright]
-typeCheckingMode = "strict"
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -36,52 +45,68 @@ build-backend = "poetry.core.masonry.api"
 testpaths = ["tests"]
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py310"
 line-length = 120
 fix = true
+[tool.ruff.lint]
 select = [
-    # flake8-2020
-    "YTT",
-    # flake8-bandit
-    "S",
-    # flake8-bugbear
-    "B",
-    # flake8-builtins
-    "A",
-    # flake8-comprehensions
-    "C4",
-    # flake8-debugger
-    "T10",
-    # flake8-simplify
-    "SIM",
-    # isort
-    "I",
-    # mccabe
-    "C90",
-    # pycodestyle
-    "E", "W",
-    # pyflakes
-    "F",
-    # pygrep-hooks
-    "PGH",
-    # pyupgrade
-    "UP",
-    # ruff
-    "RUF",
-    # tryceratops
-    "TRY",
+  # flake8-2020
+  "YTT",
+  # flake8-bandit
+  "S",
+  # flake8-bugbear
+  "B",
+  # flake8-builtins
+  "A",
+  # flake8-comprehensions
+  "C4",
+  # flake8-debugger
+  "T10",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+  # mccabe
+  "C90",
+  # pycodestyle
+  "E",
+  "W",
+  # pyflakes
+  "F",
+  # pygrep-hooks
+  "PGH",
+  # pyupgrade
+  "UP",
+  # ruff
+  "RUF",
+  # tryceratops
+  "TRY",
 ]
 ignore = [
-    # LineTooLong
-    "E501",
-    # DoNotAssignLambda
-    "E731",
+  # LineTooLong
+  "E501",
+  # DoNotAssignLambda
+  "E731",
+
+  # Function call in argument defaults--it's just part of the d.py workflow...
+  "B008",
+  # I know to use CSPRNGs for stuff that needs to be secure...
+  "S311"
 ]
 
 [tool.ruff.format]
 preview = true
 
 
-
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
+
+
+[tool.isort]
+profile = "black"
+
+[tool.bandit]
+skips = [
+  # I know to use CSPRNGs for stuff that needs to be secure...
+  "B311"
+]

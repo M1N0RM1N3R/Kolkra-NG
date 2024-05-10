@@ -1,6 +1,7 @@
 repos:
+  # Basic checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: "v4.4.0"
+    rev: v4.5.0
     hooks:
       - id: check-case-conflict
       - id: check-merge-conflict
@@ -9,14 +10,61 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
+  # Makes sure all dependencies are in order
+  - repo: https://github.com/python-poetry/poetry
+    rev: 1.7.1
+    hooks:
+      - id: poetry-check
+      - id: poetry-lock
+      - id: poetry-install
+
+  # Cleans up code formatting
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+
+  # Sorts import statements
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+
+  # Checks for missing type annotations
+  - repo: https://github.com/nathanvaughn/pyleft
+    rev: v1.2.2
+    hooks:
+      - id: pyleft
+
+  # Type-checks codebase
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.362
+    hooks:
+      - id: pyright
+
+  # Performs more OCD checks
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.1.6"
+    rev: v0.4.4
     hooks:
       - id: ruff
         args: [--exit-non-zero-on-fix]
-      - id: ruff-format
 
+  # Formats non-Python code
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: "v3.0.3"
+    rev: v3.1.0
     hooks:
       - id: prettier
+
+  # Checks for common security issues
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml"]
+        additional_dependencies: ["bandit[toml]"]
+
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.1
+    hooks:
+      - id: python-safety-dependencies-check
+        files: pyproject.toml

@@ -7,17 +7,8 @@ install: ## Install the poetry environment and install the pre-commit hooks
 
 .PHONY: check
 check: ## Run code quality tools.
-	@echo "🚀 Checking Poetry lock file consistency with 'pyproject.toml': Running poetry check --lock"
-	@poetry check --lock
 	@echo "🚀 Linting code: Running pre-commit"
 	@poetry run pre-commit run -a
-	@echo "🚀 Static type checking: Running pyright"
-	poetry run pyright
-
-# .PHONY: test
-# test: ## Test the code with pytest
-# 	@echo "🚀 Testing code: Running pytest"
-# 	@poetry run pytest --doctest-modules
 
 .PHONY: build
 build: clean-build ## Build wheel file using poetry
@@ -27,6 +18,10 @@ build: clean-build ## Build wheel file using poetry
 .PHONY: clean-build
 clean-build: ## clean build artifacts
 	@rm -rf dist
+
+.PHONY: start-mongo
+start-mongo:
+	@docker run -d --rm -p 27017:27017 mongo
 
 .PHONY: help
 help:

@@ -72,7 +72,7 @@ class InfoEmbed(Embed):
         color: Color | None = None,
         **kwargs: Any,
     ):
-        color = color or None
+        color = color or Color.blue()
         super().__init__(title=title, color=color, **kwargs)
         self.set_thumbnail(url=icons8("info"))
 

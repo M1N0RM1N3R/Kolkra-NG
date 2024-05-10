@@ -11,11 +11,7 @@ You can contribute in many ways:
 
 Report bugs at https://github.com/m1n0rm1n3r/Kolkra-NG/issues
 
-If you are reporting a bug, please include:
-
-- Your operating system name and version.
-- Any details about your local setup that might be helpful in troubleshooting.
-- Detailed steps to reproduce the bug.
+If you are reporting a bug, please include detailed steps to reproduce the bug.
 
 ## Fix Bugs
 
@@ -27,10 +23,6 @@ Anything tagged with "bug" and "help wanted" is open to whoever wants to impleme
 Look through the GitHub issues for features.
 Anything tagged with "enhancement" and "help wanted" is open to whoever wants to implement it.
 
-## Write Documentation
-
-Cookiecutter PyPackage could always use more documentation, whether as part of the official docs, in docstrings, or even on the web in blog posts, articles, and such.
-
 ## Submit Feedback
 
 The best way to send feedback is to file an issue at https://github.com/m1n0rm1n3r/Kolkra-NG/issues.
@@ -40,7 +32,7 @@ If you are proposing a new feature:
 - Explain in detail how it would work.
 - Keep the scope as narrow as possible, to make it easier to implement.
 - Remember that this is a volunteer-driven project, and that contributions
-  are welcome :)
+  are welcome!
 
 # Get Started!
 
@@ -63,6 +55,7 @@ cd Kolkra-NG
 ```
 
 If you are using `pyenv`, select a version to use locally. (See installed versions with `pyenv versions`)
+(Kolkra-NG was built for Python 3.10 or later.)
 
 ```bash
 pyenv local <x.y.z>
@@ -89,31 +82,24 @@ git checkout -b name-of-your-bugfix-or-feature
 
 Now you can make your changes locally.
 
-6. Don't forget to add test cases for your added functionality to the `tests` directory.
-
-7. When you're done making changes, check that your changes pass the formatting tests.
+6. When you're done making changes, check that your changes pass the linting checks.
 
 ```bash
 make check
 ```
 
-Now, validate that all unit tests are passing:
+7. Test all features in an isolated environment to help catch any bugs.
+
+Create a configuration file at `config.toml`. `config.EXAMPLE.toml` provides a template and explanation for what fields you should provide.
+
+You will also need to set up MongoDB, whether on your local machine or through a cloud provider.
+If you have Docker installed on your machine, you can quickly spin up an ephemeral MongoDB instance with an included Makefile script.
 
 ```bash
-make test
+make start-mongo
 ```
 
-9. Before raising a pull request you should also run tox.
-   This will run the tests across different versions of Python:
-
-```bash
-tox
-```
-
-This requires you to have multiple versions of python installed.
-This step is also triggered in the CI/CD pipeline, so you could also choose to skip this step locally.
-
-10. Commit your changes and push your branch to GitHub:
+7.  Commit your changes and push your branch to GitHub:
 
 ```bash
 git add .
@@ -121,13 +107,9 @@ git commit -m "Your detailed description of your changes."
 git push origin name-of-your-bugfix-or-feature
 ```
 
-11. Submit a pull request through the GitHub website.
+8. Submit a pull request through the GitHub website.
 
-# Pull Request Guidelines
+## Conventional Commits
 
-Before you submit a pull request, check that it meets these guidelines:
-
-1. The pull request should include tests.
-
-2. If the pull request adds functionality, the docs should be updated.
-   Put your new functionality into a function with a docstring, and add the feature to the list in `README.md`.
+Contributors are strongly encouraged, but not required, to follow [Conventional Commits](https://www.conventionalcommits.org/) in your commit messages.
+If you use VSCode, you should use the [Conventional Commits](https://marketplace.visualstudio.com/items?itemName=vivaxy.vscode-conventional-commits) extension to help you format your commit messages properly.
