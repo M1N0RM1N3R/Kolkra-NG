@@ -1,9 +1,10 @@
 import re
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any, TypeAlias
 
 import tomli
-from pydantic import BaseModel, Field, MongoDsn, Secret, field_validator
+from pydantic import BaseModel, Field, Secret, UrlConstraints, field_validator
+from pydantic_core import MultiHostUrl
 from typing_extensions import Self
 
 from kolkra_ng.enums.staff_level import StaffLevel
@@ -17,6 +18,14 @@ class StaffRoles(BaseModel):
 
     permission_role: int
     cosmetic_roles: list[int] = Field(default_factory=list)
+
+
+MongoDsn: TypeAlias = Annotated[
+    MultiHostUrl,
+    UrlConstraints(
+        allowed_schemes=["mongodb", "mongodb+srv"],
+    ),
+]
 
 
 class Config(BaseModel):
