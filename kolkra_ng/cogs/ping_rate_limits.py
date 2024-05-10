@@ -15,7 +15,7 @@ from kolkra_ng.embeds import InfoEmbed, OkEmbed, QuestionEmbed, WaitEmbed
 from kolkra_ng.enums.staff_level import StaffLevel
 from kolkra_ng.utils import audit_log_reason_template
 from kolkra_ng.views.confirm import Confirm
-from kolkra_ng.views.pager import Pager
+from kolkra_ng.views.pager import Pager, group_embeds
 
 log = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ class PingRateLimitsCog(commands.Cog):
                 embed = Embed(color=embed.color)
             embed.add_field(name=role.name, value=value)
         embeds.append(embed)
-        await Pager([[e] for e in embeds]).respond(ctx)
+        await Pager(group_embeds(embeds)).respond(ctx)
 
     @ping_rate_limits.command(aliases=["clear"])
     @commands.guild_only()

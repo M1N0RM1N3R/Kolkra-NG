@@ -48,12 +48,12 @@ class BumpReminderCog(commands.Cog):
     async def __delayed_reminder(self, channel: MessageableChannel) -> None:
         await asyncio.sleep(timedelta(hours=2).total_seconds())
         await channel.send(
-            "".join([f"<@&{role}>" for role in self.config]) or None,
+            "".join([f"<@&{role}>" for role in self.config.ping_roles]) or None,
             embed=Embed(
                 title="Time to bump!",
                 description="Bump our server by typing `/bump`!",
                 color=Color.yellow(),
-            ).set_thumbnail(url=icons8("alarm-clock--v2", animated=True)),
+            ).set_thumbnail(url=icons8("alarm")),
         )
 
     @commands.Cog.listener()

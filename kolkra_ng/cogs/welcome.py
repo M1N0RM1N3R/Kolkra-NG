@@ -33,7 +33,7 @@ class WelcomeConfig(BaseModel):
             "https://cdn.discordapp.com/attachments/1066917293935841340/1079624383804493864/Picsart_22-10-18_21-30-54-748.png"  # No really, don't delete it
         ),
         messages=[
-            "<a:Ouch:847300319071043604> {user} just left  **{guild}**...\n"
+            "<a:Ouch:847300319071043604> {user} just left **{guild}**...\n"
             "<a:1member:803768545816084480> <:splatbroke:1057109111097004103>"
         ],
     )
