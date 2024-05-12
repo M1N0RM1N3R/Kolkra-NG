@@ -8,9 +8,9 @@ from discord import Embed, utils
 from discord.ext import commands
 
 from kolkra_ng.context import KolkraContext
-from kolkra_ng.embeds import InfoEmbed
+from kolkra_ng.embeds import InfoEmbed, SplitEmbed
 from kolkra_ng.views.confirm import Confirm
-from kolkra_ng.views.pager import Pager
+from kolkra_ng.views.pager import Pager, group_embeds
 
 
 class KolkraHelp(commands.HelpCommand):
@@ -116,25 +116,21 @@ class KolkraHelp(commands.HelpCommand):
         mapping: Mapping[commands.Cog | None, list[commands.Command[Any, ..., Any]]],
         /,
     ) -> None:
-        fields = [
-            (
-                cog.__cog_name__ if cog else "misc",
-                "\n".join(f"- {self.command_display(cmd)}" for cmd in cmds),
-            )
-            for cog, cmds in mapping.items()
-            if cmds
-        ]
-        embeds = []
-        for i in range(0, len(fields), 10):
-            embed = self.base_embed(
+        split_embed = SplitEmbed.from_single(
+            self.base_embed(
                 title="Kolkra-NG help",
                 description=self.context.bot.description,
             )
-            for field in fields[i : i + 10]:
-                name, value = field
-                embed.add_field(name=name, value=value, inline=False)
-            embeds.append(embed)
-        await Pager([[embed] for embed in embeds], self.context.author).respond(
+        )
+        for cog, cmds in mapping.items():
+            if not cmds:
+                continue
+            split_embed.add_field(
+                name=cog.__cog_name__ if cog else "misc",
+                value="\n".join(f"- {self.command_display(cmd)}" for cmd in cmds),
+                inline=False,
+            )
+        await Pager(group_embeds(split_embed.embeds()), self.context.author).respond(
             self.context
         )
 

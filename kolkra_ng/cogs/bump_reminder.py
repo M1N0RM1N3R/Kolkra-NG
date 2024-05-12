@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime, timedelta
 from typing import TypeAlias
 
@@ -45,8 +44,7 @@ class BumpReminderCog(commands.Cog):
         self.bot = bot
         self.config = BumpReminderConfig(**bot.config.cogs.get(self.__cog_name__, {}))
 
-    async def __delayed_reminder(self, channel: MessageableChannel) -> None:
-        await asyncio.sleep(timedelta(hours=2).total_seconds())
+    async def send_reminder(self, channel: MessageableChannel) -> None:
         await channel.send(
             "".join([f"<@&{role}>" for role in self.config.ping_roles]) or None,
             embed=Embed(
@@ -64,7 +62,8 @@ class BumpReminderCog(commands.Cog):
             == "https://disboard.org/images/bot-command-image-bump.png"
         ):
             return
-        self.task = self.bot.loop.create_task(self.__delayed_reminder(message.channel))
+        next_bump = datetime.now() + timedelta(hours=2)
+        self.task = self.bot.schedule(self.send_reminder, next_bump, message.channel)
         await message.channel.send(
             embed=Embed(
                 title="Thanks for the bump!",
@@ -73,7 +72,7 @@ class BumpReminderCog(commands.Cog):
             .set_thumbnail(url=icons8("reminder"))
             .add_field(
                 name="Next bump",
-                value=format_dt(datetime.now() + timedelta(hours=2), "R"),
+                value=format_dt(next_bump, "R"),
             )
         )
 

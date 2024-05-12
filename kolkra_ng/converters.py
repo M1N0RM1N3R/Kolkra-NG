@@ -1,9 +1,10 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal
 
 import dateparser
 import emoji
+import pytimeparse
 from discord import Interaction, app_commands
 from discord.ext import commands
 
@@ -50,6 +51,34 @@ class DatetimeConverter(commands.Converter[datetime], app_commands.Transformer):
         except commands.BadArgument:
             return []
         return [app_commands.Choice(name=iso, value=iso)]
+
+
+class BadTimeDelta(commands.BadArgument):
+    def __init__(self, argument: str):
+        super().__init__(f"{argument!r} is not in a known duration format.")
+
+
+class TimeDeltaConverter(commands.Converter[timedelta], app_commands.Transformer):
+    def parse(self, argument: str) -> timedelta:
+        secs = pytimeparse.parse(argument)
+        if secs is None:
+            raise BadTimeDelta(argument)
+        return timedelta(seconds=secs)
+
+    async def convert(self, ctx: commands.Context, argument: str) -> timedelta:
+        return self.parse(argument)
+
+    async def transform(self, interaction: Interaction, value: str, /) -> timedelta:
+        return self.parse(value)
+
+    async def autocomplete(  # pyright: ignore [reportIncompatibleMethodOverride]
+        self, interaction: Interaction, value: str, /
+    ) -> list[app_commands.Choice[str]]:
+        try:
+            fmt = str(self.parse(value))
+        except commands.BadArgument:
+            return []
+        return [app_commands.Choice(name=fmt, value=fmt)]
 
 
 class BadUnicodeEmoji(commands.BadArgument):

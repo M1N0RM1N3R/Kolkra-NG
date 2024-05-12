@@ -1,17 +1,28 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
+from typing import Annotated, Any
 
 import humanize
-from discord import Embed, Member, Message, Role
-from discord.app_commands import NoPrivateMessage
+from beanie import Document, Indexed
+from beanie.operators import Eq, In
+from discord import Member, Message, Role
 from discord.ext import commands
-from discord.utils import format_dt
-from pydantic import BaseModel, Field
+from discord.utils import format_dt, utcnow
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from kolkra_ng.bot import Kolkra, KolkraContext
 from kolkra_ng.checks import is_staff_level
-from kolkra_ng.embeds import InfoEmbed, OkEmbed, QuestionEmbed, WaitEmbed
+from kolkra_ng.converters import Flags, TimeDeltaConverter
+from kolkra_ng.embeds import (
+    AccessDeniedEmbed,
+    InfoEmbed,
+    OkEmbed,
+    QuestionEmbed,
+    SplitEmbed,
+    WaitEmbed,
+)
 from kolkra_ng.enums.staff_level import StaffLevel
 from kolkra_ng.utils import audit_log_reason_template
 from kolkra_ng.views.confirm import Confirm
@@ -20,123 +31,231 @@ from kolkra_ng.views.pager import Pager, group_embeds
 log = logging.getLogger(__name__)
 
 
-class RateLimit(BaseModel):
-    rate: int = 1
-    per: timedelta
+class RoleRepr(BaseModel):
+    guild_id: Annotated[int, Indexed()]
+    role_id: int
+
+    @classmethod
+    def _from(cls, role: Role) -> Self:
+        return cls(guild_id=role.guild.id, role_id=role.id)
+
+    async def get(self, bot: Kolkra) -> Role | None:
+        return (
+            bot.get_guild(self.guild_id) or await bot.fetch_guild(self.guild_id)
+        ).get_role(self.role_id)
+
+    def __hash__(self) -> int:
+        return hash((self.guild_id, self.role_id))
 
 
-class PingRateLimitConfig(BaseModel):
-    rate_limits: dict[int, RateLimit] = Field(default_factory=dict)
+# https://adamj.eu/tech/2021/10/13/how-to-create-a-transparent-attribute-alias-in-python/
+class Alias:
+    def __init__(self, source_name: str):
+        self.source_name = source_name
+
+    def __get__(self, obj: Any, objtype: type | None = None) -> Any:
+        if obj is None:
+            # Class lookup, return descriptor
+            return self
+        return getattr(obj, self.source_name)
+
+    def __set__(self, obj: Any, value: Any) -> None:
+        setattr(obj, self.source_name, value)
 
 
+class PingRateLimit(Document):
+    """A Beanie representation of a rate limit with methods borrowed from `commands.Cooldown`.
+    I'm so sorry...
+    """
+
+    class Settings:
+        use_cache = True
+        cache_expiration_time = timedelta(seconds=10)
+
+    role_repr: Annotated[RoleRepr, Indexed(unique=True)]
+
+    rate: int
+    per: float
+    window: float = 0
+    tokens: int
+    last: float = 0
+
+    @classmethod
+    def new(cls, rate: int, per: float, role_repr: RoleRepr) -> Self:
+        return cls(rate=rate, per=per, tokens=rate, role_repr=role_repr)
+
+    @property
+    def available_at(self) -> datetime:
+        return utcnow() + timedelta(seconds=self.get_retry_after())
+
+    # Borrowstealing some methods from commands.Cooldown...
+    # ️⚠ CURSED CODE AHEAD!
+
+    _window = Alias("window")
+    _tokens = Alias("tokens")
+    _last = Alias("last")
+
+    def get_retry_after(self, current: float | None = None) -> float:
+        return commands.Cooldown.get_retry_after(
+            self, current  # pyright: ignore [reportArgumentType]
+        )
+
+    def get_tokens(self, current: float | None = None) -> int:
+        return commands.Cooldown.get_tokens(
+            self, current  # pyright: ignore [reportArgumentType]
+        )
+
+    def reset(self) -> None:
+        return commands.Cooldown.reset(self)  # pyright: ignore [reportArgumentType]
+
+    def update_rate_limit(
+        self, current: float | None = None, *, tokens: int = 1
+    ) -> float | None:
+        return commands.Cooldown.update_rate_limit(
+            self,  # pyright: ignore [reportArgumentType]
+            current,
+            tokens=tokens,
+        )
+
+
+class RateLimitFlags(Flags):
+    rate: commands.Range[int, 1] = commands.flag(aliases=["tokens"], default=1)
+    per: timedelta = commands.flag(
+        aliases=["cooldown", "bucket"],
+        converter=TimeDeltaConverter(),
+        positional=True,
+    )
+
+
+@commands.guild_only()
+@commands.bot_has_permissions(manage_roles=True)
 class PingRateLimitsCog(commands.Cog):
     def __init__(self, bot: Kolkra) -> None:
         super().__init__()
         self.bot = bot
-        self.config = PingRateLimitConfig(**bot.config.cogs.get(self.__cog_name__, {}))
-        self.limits: dict[int, commands.Cooldown] = {
-            role: commands.Cooldown(rate=limit.rate, per=limit.per.total_seconds())
-            for role, limit in self.config.rate_limits.items()
-        }
-        self.reset_tasks: dict[int, asyncio.Task[None]] = {}
+        self.reset_tasks: dict[RoleRepr, asyncio.Task[None]] = {}
 
-    async def __delayed_reset(self, role: Role, wait: float) -> None:
-        await asyncio.sleep(wait)
-        await role.edit(mentionable=True, reason="Ping rate limit reset")
+    async def cog_load(self) -> None:
+        await self.bot.init_db_models(PingRateLimit)
+        async for rl in PingRateLimit.find_all():
+            self.setup_reset(rl)
 
-    async def why_isnt_my_ping_working(self, message: Message) -> None:
-        if not message.guild:
-            return
-        bad_pings = False
-        embed = WaitEmbed(
-            title="Role(s) on cooldown",
-            description="One or more roles you tried to ping is currently on cooldown.",
+    async def cog_unload(self) -> None:
+        for task in self.reset_tasks.values():
+            task.cancel()
+
+    async def reset(
+        self, rate_limit: PingRateLimit, manual_by: Member | None = None
+    ) -> None:
+        await self.bot.http.edit_role(
+            rate_limit.role_repr.guild_id,
+            rate_limit.role_repr.role_id,
+            reason=(
+                audit_log_reason_template(
+                    author_name=manual_by.name,
+                    author_id=manual_by.id,
+                    reason="Manually reset rate limit",
+                )
+                if manual_by
+                else "Rate limit reset"
+            ),
+            mentionable=True,
         )
-        for role, limit in [
-            (message.guild.get_role(k), v)
-            for k, v in self.limits.items()
-            if v.get_tokens() == 0
-        ]:
-            if not role:
-                continue
-            if "@" + role.name in message.content or role.mention in message.content:
-                bad_pings = True
-                retry_timestamp = format_dt(
-                    datetime.now() + timedelta(seconds=limit.get_retry_after()),
-                    "R",
-                )
-                embed.add_field(
-                    name=role.name,
-                    value=f"Pingable {retry_timestamp}",
-                )
-        if bad_pings:
-            await message.reply(embed=embed)
+        if not manual_by:
+            return
+        if task := self.reset_tasks.pop(rate_limit.role_repr, None):
+            task.cancel()
+        rate_limit.reset()
+        await rate_limit.save()
 
-    async def apply_rate_limits(self, message: Message) -> None:
-        for role in message.role_mentions:
-            if not (limit := self.limits.get(role.id, None)):
-                continue
-            limit.update_rate_limit()
-            if limit.get_tokens() > 0:
-                continue
-            await role.edit(
-                mentionable=False,
-                reason="Ping rate limit exhausted",
+    def setup_reset(self, rate_limit: PingRateLimit) -> None:
+        if existing := self.reset_tasks.pop(rate_limit.role_repr, None):
+            existing.cancel()
+        task = self.bot.schedule(self.reset, rate_limit.available_at, rate_limit)
+        self.reset_tasks[rate_limit.role_repr] = task
+
+    async def why_isnt_my_my_ping_working(
+        self, message: Message, bad_pings: list[tuple[Role, PingRateLimit]]
+    ) -> None:
+        split_embed = SplitEmbed.from_single(
+            WaitEmbed(
+                title="Pings not working?",
+                description="One or more roles you tried to mention is currently on cooldown.",
             )
-            task = self.bot.loop.create_task(
-                self.__delayed_reset(role, limit.get_retry_after())
+        )
+        for role, rl in bad_pings:
+            split_embed.add_field(
+                name=role.name,
+                value=f"Pingable {format_dt(rl.available_at, 'R')}",
             )
-            self.reset_tasks[role.id] = task
-            role_id = (
-                role.id
-            )  # Little addition to satisfy type-checking in the closure below
-            task.add_done_callback(
-                lambda _: self.reset_tasks.pop(role_id)  # noqa: B023
-            )
+        await message.reply(embeds=split_embed.embeds())
 
     @commands.Cog.listener()
     async def on_message(self, message: Message) -> None:
-        await self.why_isnt_my_ping_working(message)
-        await self.apply_rate_limits(message)
+        if not message.guild:
+            return
+        pinged_role_ids = [role.id for role in message.role_mentions]
+        to_delete = []
+        bad_pings = []
+        async for rl in PingRateLimit.find(
+            Eq(PingRateLimit.role_repr.guild_id, message.guild.id)
+        ):
+            if not (role := await rl.role_repr.get(self.bot)):
+                to_delete.append(rl)
+                continue
+            if role.id in pinged_role_ids:
+                rl.update_rate_limit()
+                await rl.save()
+            if rl.get_tokens() > 0:
+                continue
+            self.setup_reset(rl)
+            if role.mentionable:
+                await role.edit(
+                    mentionable=False,
+                    reason=f"Rate limit exhausted, resetting at {rl.available_at}",
+                )
+                continue
+            if (
+                role.mention in message.content and role not in message.role_mentions
+            ) or f"@{role.name}" in message.content:
+                bad_pings.append((role, rl))
+        if bad_pings:
+            await self.why_isnt_my_my_ping_working(message, bad_pings)
+        for rl in to_delete:
+            await rl.delete()
 
     @commands.hybrid_group(aliases=["prl"], fallback="list")
-    @commands.guild_only()
     async def ping_rate_limits(self, ctx: KolkraContext) -> None:
         """List the roles with ping rate limits enforced by the bot."""
         if not ctx.guild:
-            raise NoPrivateMessage()
-        embed = InfoEmbed(
-            title="Ping Rate-Limited Roles",
-            description="These roles are automatically made unpingable when their rate limit is reached.",
+            raise commands.NoPrivateMessage()
+        split_embed = SplitEmbed.from_single(
+            InfoEmbed(
+                title="Rate-limited roles",
+                description="These roles are automatically made unpingable when their rate limit is reached.",
+            )
         )
-        embeds = []
-        for role, limit in [
-            (role, v) for k, v in self.limits.items() if (role := ctx.guild.get_role(k))
-        ]:
-            if not role:
+        async for limit in PingRateLimit.find(
+            Eq(PingRateLimit.role_repr.guild_id, ctx.guild.id)
+        ):
+            if not (role := await limit.role_repr.get(ctx.bot)):
                 continue
 
-            retry_timestamp = (
-                format_dt(
-                    datetime.now() + timedelta(seconds=limit.get_retry_after()),
-                    "R",
-                )
+            per = humanize.precisedelta(int(limit.per))
+            pingable = (
+                f" (Pingable {format_dt(limit.available_at, 'R')})"
                 if limit.get_tokens() <= 0
-                else None
+                else ""
             )
-            value = f"{limit.get_tokens()}/{limit.rate} per {humanize.precisedelta(int(limit.per))}{f' (Pingable {retry_timestamp})' if retry_timestamp else ''}"
-            if len(embed.fields) >= 10:
-                embeds.append(embed)
-                embed = Embed(color=embed.color)
-            embed.add_field(name=role.name, value=value)
-        embeds.append(embed)
-        await Pager(group_embeds(embeds)).respond(ctx)
+            value = f"{limit.get_tokens()}/{limit.rate} per {per}{pingable}"
+            split_embed.add_field(name=role.name, value=value)
+        await Pager(group_embeds(split_embed.embeds()), ctx.author).respond(
+            ctx, ephemeral=True
+        )
 
-    @ping_rate_limits.command(aliases=["clear"])
-    @commands.guild_only()
+    @ping_rate_limits.command(name="reset", aliases=["clear"])
     @is_staff_level(StaffLevel.mod)
-    @commands.bot_has_permissions(manage_roles=True)
-    async def reset(
+    async def reset_cmd(
         self,
         ctx: KolkraContext,
         roles: commands.Greedy[Role] = commands.parameter(
@@ -147,35 +266,97 @@ class PingRateLimitsCog(commands.Cog):
     ) -> None:
         """Reset role ping rate limits."""
         if not ctx.guild or not isinstance(ctx.author, Member):
-            raise NoPrivateMessage()
-        selection = [
-            (role, limit)
-            for role in (roles or ctx.guild.roles)
-            if (limit := self.limits.get(role.id, None)) and role < ctx.author.top_role
-        ]
+            raise commands.NoPrivateMessage()
+        limits = await PingRateLimit.find(
+            In(
+                PingRateLimit.role_repr,
+                [RoleRepr._from(role) for role in roles],
+            )
+        ).to_list()
         if not await Confirm(ctx.author).respond(
             ctx,
             embed=QuestionEmbed(
                 title="Reset rate limits?",
-                description=f"You are about to reset the rate limits on {len(selection)} roles. Are you sure you want to continue?",
+                description=f"You are about to reset the rate limits on {len(limits)} roles. Are you sure you want to continue?",
             ),
         ):
             return
-        for role, limit in selection:
-            if task := self.reset_tasks.get(role.id, None):
-                task.cancel()
-            limit.reset()
-            await role.edit(
-                mentionable=True,
-                reason=audit_log_reason_template(
-                    author_name=ctx.author.name,
-                    author_id=ctx.author.id,
-                    reason=f"Used {ctx.invoked_with}",
-                ),
-            )
+        for limit in limits:
+            await self.reset(limit, ctx.author)
 
         await ctx.respond(
-            embed=OkEmbed(description=f"Reset rate limits for {len(selection)} roles.")
+            embed=OkEmbed(description=f"Reset rate limits for {len(limits)} roles.")
+        )
+
+    @ping_rate_limits.command(
+        name="set",
+        aliases=["setup", "new", "add", "create", "edit"],
+        rest_is_raw=True,
+    )
+    @is_staff_level(StaffLevel.mod)
+    async def set_cmd(
+        self, ctx: KolkraContext, role: Role, *, flags: RateLimitFlags
+    ) -> None:
+        """Set up a ping rate limit for a role.
+        This rate limit is consumed each time the role is mentioned, and is made unmentionable when it is exhausted.
+        """
+        if role >= role.guild.me.top_role:
+            await ctx.respond(
+                embed=AccessDeniedEmbed(
+                    title="Can't manage role",
+                    description="That role is the same or higher than my top role!",
+                )
+            )
+            return
+        role_repr = RoleRepr._from(role)
+        if rl := await PingRateLimit.find(
+            Eq(PingRateLimit.role_repr, role_repr)
+        ).first_or_none():
+            rl.rate = flags.rate
+            rl.per = flags.per.total_seconds()
+            rl.update_rate_limit(tokens=0)
+        else:
+            rl = PingRateLimit.new(flags.rate, flags.per.total_seconds(), role_repr)
+        await rl.save()
+        await ctx.respond(
+            embed=OkEmbed(
+                description=f"Set rate limit of {flags.rate} ping{'s' if flags.rate != 1 else ''} "
+                f"per {humanize.precisedelta(flags.per)} for {role.mention}."
+            )
+        )
+
+    @ping_rate_limits.command(aliases=["del", "remove", "rm"])
+    @is_staff_level(StaffLevel.mod)
+    async def delete(self, ctx: KolkraContext, role: Role) -> None:
+        """Remove the ping rate limit from a role."""
+        if not isinstance(ctx.author, Member):
+            raise commands.NoPrivateMessage()
+        if not (
+            limit := await PingRateLimit.find(
+                Eq(PingRateLimit.role_repr, RoleRepr._from(role))
+            ).first_or_none()
+        ):
+            await ctx.respond(
+                embed=InfoEmbed(
+                    title="No rate limit set",
+                    description=f"There is no ping rate limit set for {role.mention}.",
+                )
+            )
+            return
+        if not await Confirm(ctx.author).respond(
+            ctx,
+            embed=QuestionEmbed(
+                title="Delete ping rate limit?",
+                description=f"You are about to permanently remove {role.mention}'s rate limit. "
+                "This will make the role permanently mentionable again, and delete the rate limit from the database. "
+                "Are you sure you want to continue?",
+            ),
+        ):
+            return
+        await self.reset(limit, ctx.author)
+        await limit.delete()
+        await ctx.respond(
+            embed=OkEmbed(description=f"Removed rate limit from {role.mention}.")
         )
 
 

@@ -177,7 +177,7 @@ ESCAPED_NEWLINE = r"\n"
 
 
 def stringify_message(message: Message) -> str:
-    return f"[{message.author}@{message.created_at.isoformat()}] {message.content.replace(NEWLINE, ESCAPED_NEWLINE)}"
+    return f"{message.created_at.isoformat()} [{message.author}] {message.content!r}"
 
 
 def generate_message_log(messages: list[Message]) -> BytesIO:

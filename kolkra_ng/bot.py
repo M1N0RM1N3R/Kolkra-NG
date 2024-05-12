@@ -1,10 +1,14 @@
+import asyncio
 import logging
+from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
-from typing import TypeVar
+from typing import ParamSpec, TypeVar
 
 from beanie import Document, init_beanie
 from discord import Intents, Interaction, Member, Message
 from discord.ext import commands
+from discord.utils import Coro, sleep_until
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from kolkra_ng.config import Config
@@ -15,7 +19,8 @@ from kolkra_ng.webhooks import SupportsWebhooks, WebhookManager
 
 log = logging.getLogger(__name__)
 
-
+T = TypeVar("T")
+ParamT = ParamSpec("ParamT")
 CogT = TypeVar("CogT", bound=commands.Cog)
 ContextT = TypeVar("ContextT", bound=commands.Context)
 
@@ -35,7 +40,8 @@ class Kolkra(commands.Bot):
 
     async def init_db_models(self, *models: type[Document]) -> None:
         log.info(
-            "Setting up database models: %s", ", ".join(m.__qualname__ for m in models)
+            "Setting up database models: %s",
+            ", ".join(m.__qualname__ for m in models),
         )
         await init_beanie(
             database=self.motor.get_database(
@@ -157,3 +163,16 @@ class Kolkra(commands.Bot):
         self.motor.close()
         log.info("Shutting down")
         await super().close()
+
+    def schedule(
+        self,
+        coro_fn: Callable[ParamT, Coro[T]],
+        run_at: datetime,
+        *args: ParamT.args,
+        **kwargs: ParamT.kwargs,
+    ) -> asyncio.Task[T]:
+        async def __timeout() -> T:
+            await sleep_until(run_at)
+            return await coro_fn(*args, **kwargs)
+
+        return self.loop.create_task(__timeout())

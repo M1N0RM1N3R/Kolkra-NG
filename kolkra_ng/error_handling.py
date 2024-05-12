@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import sys
 import traceback
 from datetime import datetime, timedelta
@@ -16,6 +17,8 @@ from kolkra_ng.context import KolkraContext
 from kolkra_ng.embeds import (
     AccessDeniedEmbed,
     ErrorEmbed,
+    QuestionEmbed,
+    SplitEmbed,
     WaitEmbed,
     WarningEmbed,
     icons8,
@@ -47,7 +50,7 @@ def exc_info(
 
 
 def format_traceback(max_length: int = 4096, exc: BaseException | None = None) -> str:
-    p = commands.Paginator(max_size=4096)
+    p = commands.Paginator(max_size=max_length)
     for line in traceback.format_exception(*(exc_info(exc) if exc else sys.exc_info())):
         p.add_line(line)
     return p.pages[-1]
@@ -62,9 +65,24 @@ async def unknown_command_error(
         context.invocation_id,
         exc_info=exc_info(exception),
     )
+    title = random.choice(
+        [
+            "pakala a!",
+            "Well, this is embarrassing...",
+            "It's not you, it's me.",
+            "Abort, Retry, Fail?",
+            "lp0 on fire",
+            "Guru Meditation. Ommmmmmmm...",
+            "Task failed successfully",
+            "💣",
+            "THAT wasn't supposed to happen!",
+            "Whoops!",
+            "This is fine.",
+        ]
+    )
     await context.respond(
         embed=ErrorEmbed(
-            title="pakala a!",
+            title=title,
             description="An unexpected error occurred while running this command.",
         )
         .add_field(name="What happened", value=exception)
@@ -75,15 +93,18 @@ async def unknown_command_error(
     )
     await context.bot.webhooks.send(
         context.bot.log_channel,
-        embed=ErrorEmbed(
-            title="Unexpected command error",
-            description=format_traceback(exc=root_cause(exception)),
+        embeds=SplitEmbed.from_single(
+            ErrorEmbed(
+                title="Unexpected command error",
+                description=format_traceback(exc=exception),
+            )
         )
         .add_field(
             name="Command",
             value=(context.command.qualified_name if context.command else "Unknown"),
         )
-        .add_field(name="Invocation ID", value=context.invocation_id),
+        .add_field(name="Invocation ID", value=context.invocation_id)
+        .embeds(),
     )
 
 
@@ -156,6 +177,13 @@ async def handle_command_error(
             )
         )
         return
+    elif isinstance(exception, commands.CommandNotFound):
+        await context.respond(
+            embed=QuestionEmbed(
+                title="Unknown command",
+                description=f"Type `{context.clean_prefix}help` for a list of available commands.",
+            )
+        )
     elif isinstance(exception, commands.UserInputError):
         await context.respond(
             embed=WarningEmbed(

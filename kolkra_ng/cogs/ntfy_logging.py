@@ -175,6 +175,7 @@ class NtfyLoggingCog(commands.Cog):
     async def cog_unload(self) -> None:
         logging.getLogger().removeHandler(self.handler)
         self.task.cancel()
+        await self.session.close()
 
 
 async def setup(bot: Kolkra) -> None:

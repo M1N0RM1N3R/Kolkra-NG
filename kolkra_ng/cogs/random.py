@@ -7,6 +7,7 @@ import humanize
 from discord import Embed, Member, Message, Object, Thread
 from discord.abc import GuildChannel
 from discord.ext import commands
+from discord.utils import utcnow
 from pydantic import BaseModel
 
 from kolkra_ng.bot import Kolkra
@@ -92,14 +93,6 @@ class RandomCog(commands.Cog):
             )
         )
 
-    async def __delayed_rm_bday_role(self, member: Member) -> None:
-        if not self.config.birthday_role:
-            raise ValueError()
-        await asyncio.sleep(timedelta(days=1).total_seconds())
-        await self.bot.http.remove_role(
-            member.guild.id, member.id, self.config.birthday_role
-        )
-
     @commands.hybrid_command(aliases=["cakeday", "birthday", "bday", "🎂"])
     @commands.guild_only()
     @is_staff_level(StaffLevel.admin)
@@ -120,7 +113,13 @@ class RandomCog(commands.Cog):
         )
         if self.config.birthday_role:
             await birthday_boi.add_roles(Object(self.config.birthday_role))
-            ctx.bot.loop.create_task(self.__delayed_rm_bday_role(birthday_boi))
+            self.bot.schedule(
+                self.bot.http.remove_role,
+                utcnow() + timedelta(days=1),
+                birthday_boi.guild.id,
+                birthday_boi.id,
+                self.config.birthday_role,
+            )
 
     @commands.hybrid_command(aliases=["8ball"], rest_is_raw=True)
     async def magic_8_ball(self, ctx: KolkraContext, *, question: str) -> None:
