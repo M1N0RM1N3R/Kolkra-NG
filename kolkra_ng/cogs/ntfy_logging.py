@@ -165,7 +165,7 @@ class NtfyLoggingCog(commands.Cog):
                 ),
                 tags=[record.levelname.lower(), f"shard{self.bot.shard_id}"],
                 # Default level numbers range from 10 (debug) to 50 (critical), ntfy priorities range from 1 (min) to 5 (urgent).
-                priority=max(min(1, round(record.levelno / 10)), 5),
+                priority=min(max(1, round(record.levelno / 10)), 5),
             ).send(self.session, self.config.server)
 
     async def cog_load(self) -> None:
