@@ -1,4 +1,5 @@
 import logging
+from typing import TYPE_CHECKING
 
 import humanize
 from discord import Embed, Member
@@ -9,6 +10,8 @@ from kolkra_ng.cogs.mod.mod_actions.abc import ModAction
 from kolkra_ng.cogs.mod.mod_actions.server_ban import ServerBan
 from kolkra_ng.embeds import icons8
 
+if TYPE_CHECKING:
+    from kolkra_ng.cogs.mod import ModCog
 log = logging.getLogger(__name__)
 
 BAN_WARNINGS = 5
@@ -82,18 +85,12 @@ class ModWarning(ModAction):
             )
         return embed
 
-    async def apply(self, bot: Kolkra) -> None:
+    async def apply(self, cog: "ModCog") -> None:
         count = await self.cached_count()
         if count >= BAN_WARNINGS:
-            from kolkra_ng.cogs.mod import ModCog
-
-            if not (cog := bot.typed_get_cog(ModCog)):
-                log.warn("Bot does not have ModCog installed--can't auto-ban")
-                return
-
             await cog.do_apply(
                 ServerBan(
-                    issuer_id=bot.user.id,  # pyright: ignore [reportOptionalMemberAccess]
+                    issuer_id=cog.bot.user.id,  # pyright: ignore [reportOptionalMemberAccess]
                     target_id=self.target_id,
                     guild_id=self.guild_id,
                     reason=f"Accumulated {count}/{BAN_WARNINGS} warnings",
@@ -102,5 +99,7 @@ class ModWarning(ModAction):
                 True,
             )
 
-    async def lift(self, bot: Kolkra, author: Member, lift_reason: str | None) -> None:
+    async def lift(
+        self, cog: "ModCog", author: Member, lift_reason: str | None
+    ) -> None:
         pass  # It's just a warning--there's nothing we need to do guild-side.

@@ -1,8 +1,12 @@
+from typing import TYPE_CHECKING
+
 from discord import Color, Embed, Member
 
-from kolkra_ng.bot import Kolkra
 from kolkra_ng.cogs.mod.mod_actions.abc import ModAction
 from kolkra_ng.embeds import icons8
+
+if TYPE_CHECKING:
+    from kolkra_ng.cogs.mod import ModCog
 
 
 class Softban(ModAction):
@@ -23,10 +27,12 @@ class Softban(ModAction):
             url=icons8("no-entry")
         )
 
-    async def apply(self, bot: Kolkra) -> None:
-        return await bot.http.kick(
-            self.target_id, self.guild_id, self.apply_audit_reason(bot)
+    async def apply(self, cog: "ModCog") -> None:
+        return await cog.bot.http.kick(
+            self.target_id, self.guild_id, self.apply_audit_reason(cog.bot)
         )
 
-    async def lift(self, bot: Kolkra, author: Member, lift_reason: str | None) -> None:
+    async def lift(
+        self, cog: "ModCog", author: Member, lift_reason: str | None
+    ) -> None:
         pass  # There's nothing to do, just stop kicking them

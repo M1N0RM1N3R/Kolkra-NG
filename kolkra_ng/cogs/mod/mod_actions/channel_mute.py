@@ -1,13 +1,16 @@
+from typing import TYPE_CHECKING
+
 from beanie.odm.queries.find import FindMany
 from beanie.operators import Eq
 from discord import Color, Embed, Member, PermissionOverwrite
 from typing_extensions import Self
 
-from kolkra_ng.bot import Kolkra
 from kolkra_ng.cogs.mod.mod_actions.abc import ModAction
 from kolkra_ng.embeds import icons8
 from kolkra_ng.utils import audit_log_reason_template
 
+if TYPE_CHECKING:
+    from kolkra_ng.cogs.mod import ModCog
 MUTE_PERMS = PermissionOverwrite(
     send_messages=False,
     send_messages_in_threads=False,
@@ -40,19 +43,21 @@ class ChannelMute(ModAction):
             .set_thumbnail(url=icons8("mute"))
         )
 
-    async def apply(self, bot: Kolkra) -> None:
+    async def apply(self, cog: "ModCog") -> None:
         allow, deny = MUTE_PERMS.pair()
-        await bot.http.edit_channel_permissions(
+        await cog.bot.http.edit_channel_permissions(
             self.channel_id,
             self.target_id,
             str(allow.value),
             str(deny.value),
             1,  # Individual member
-            reason=self.apply_audit_reason(bot),
+            reason=self.apply_audit_reason(cog.bot),
         )
 
-    async def lift(self, bot: Kolkra, author: Member, lift_reason: str | None) -> None:
-        await bot.http.delete_channel_permissions(
+    async def lift(
+        self, cog: "ModCog", author: Member, lift_reason: str | None
+    ) -> None:
+        await cog.bot.http.delete_channel_permissions(
             self.channel_id,
             self.target_id,
             reason=audit_log_reason_template(

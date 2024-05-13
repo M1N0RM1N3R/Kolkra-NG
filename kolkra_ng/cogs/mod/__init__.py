@@ -113,7 +113,7 @@ class ModCog(commands.Cog):
                 action.target_id,
                 embed=await action.dm_embed(self.bot),
             )
-        await action.apply(self.bot)
+        await action.apply(self)
         if action.expiration:
             self.__lift_tasks[action.id] = self.bot.loop.create_task(
                 self.__delayed_lift(action)
@@ -138,7 +138,7 @@ class ModCog(commands.Cog):
             lift_reason (str | None): The reason the action is being lifted.
             __exp (bool, optional): Internal flag to prevent the expiration task from cancelling itself. Defaults to False.
         """
-        await action.lift(self.bot, author, lift_reason)
+        await action.lift(self, author, lift_reason)
         if (task := self.__lift_tasks.pop(action.id, None)) and not __exp:
             task.cancel()
         action.lifted = ModActionLift(lifter_id=author.id, reason=lift_reason)
@@ -177,6 +177,7 @@ class ModCog(commands.Cog):
             return
         await mass_delete(matches, ctx.author)
         await ctx.send(embed=OkEmbed(description=f"Deleted {len(matches)} messages."))
+        msg_log.seek(0)
         await ctx.bot.webhooks.send(
             ctx.bot.log_channel,
             embed=Embed(
@@ -579,7 +580,9 @@ class ModCog(commands.Cog):
     async def remove_warning(
         self, ctx: KolkraContext, warning_id: str, *, reason: str | None
     ) -> None:
-        """Remove a warning based on its ID."""
+        """Remove a warning based on its ID.
+        If a user was banned for accumulating 5 warnings, this will not automatically unban them.
+        """
         if not (ctx.guild and isinstance(ctx.author, Member)):
             raise commands.NoPrivateMessage()
         if (

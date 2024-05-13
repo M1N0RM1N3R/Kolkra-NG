@@ -68,7 +68,8 @@ class HttpAction(BaseAction):
 
 
 Action: TypeAlias = Annotated[
-    ViewAction | AndroidBroadcastAction | HttpAction, Field(discriminator="action")
+    ViewAction | AndroidBroadcastAction | HttpAction,
+    Field(discriminator="action"),
 ]
 
 

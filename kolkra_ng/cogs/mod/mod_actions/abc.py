@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from beanie import Document
 from beanie.odm.queries.find import FindMany
@@ -13,6 +14,9 @@ from typing_extensions import Self
 from kolkra_ng.bot import Kolkra
 from kolkra_ng.db_types import UtcDateTime
 from kolkra_ng.utils import audit_log_reason_template
+
+if TYPE_CHECKING:
+    from kolkra_ng.cogs.mod import ModCog
 
 log = logging.getLogger(__name__)
 
@@ -141,24 +145,26 @@ class ModAction(Document, ABC):
         )
 
     @abstractmethod
-    async def apply(self, bot: Kolkra) -> None:
+    async def apply(self, cog: "ModCog") -> None:
         """Do whatever needs to be done to apply the restriction.
         This method should be implemented by subclasses.
 
         Args:
-            bot (Kolkra): The bot instance to use.
+            cog (ModCog): The cog triggering the action.
         """
         pass
 
     @abstractmethod
-    async def lift(self, bot: Kolkra, author: Member, lift_reason: str | None) -> None:
+    async def lift(
+        self, cog: "ModCog", author: Member, lift_reason: str | None
+    ) -> None:
         """Do whatever needs to be done to remove the restriction.
         This method should be implemented by subclasses.
 
         Args:
-            bot (Kolkra): The bot instance to use.
+            cog (ModCog): The cog triggering the lift.
             author (Member): The user who initiated the lift.
-            lift_reason (str | None): The reason the user provided for lifting the restriction.
+            lift_reason (str | None): The reason the user provided for lifting the action.
         """
         pass
 

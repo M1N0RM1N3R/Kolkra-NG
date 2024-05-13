@@ -1,9 +1,13 @@
+from typing import TYPE_CHECKING
+
 from discord import Color, Embed, Member
 
-from kolkra_ng.bot import Kolkra
 from kolkra_ng.cogs.mod.mod_actions.abc import ModAction
 from kolkra_ng.embeds import icons8
 from kolkra_ng.utils import audit_log_reason_template
+
+if TYPE_CHECKING:
+    from kolkra_ng.cogs.mod import ModCog
 
 
 class ServerBan(ModAction):
@@ -25,16 +29,18 @@ class ServerBan(ModAction):
             title="Server Ban",
         ).set_thumbnail(url=icons8("law"))
 
-    async def apply(self, bot: Kolkra) -> None:
-        await bot.http.ban(
+    async def apply(self, cog: "ModCog") -> None:
+        await cog.bot.http.ban(
             user_id=self.target_id,
             guild_id=self.guild_id,
-            reason=self.apply_audit_reason(bot),
+            reason=self.apply_audit_reason(cog.bot),
             delete_message_seconds=0,
         )
 
-    async def lift(self, bot: Kolkra, author: Member, lift_reason: str | None) -> None:
-        await bot.http.unban(
+    async def lift(
+        self, cog: "ModCog", author: Member, lift_reason: str | None
+    ) -> None:
+        await cog.bot.http.unban(
             user_id=self.target_id,
             guild_id=self.guild_id,
             reason=audit_log_reason_template(
