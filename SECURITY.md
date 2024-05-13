@@ -15,6 +15,7 @@ Do not try to exploit any public instances. Instead, you may spin up your own in
 
 When reporting a vulnerability, please encrypt any potentially sensitive information with the following PGP key:
 
+```
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mDMEZUWEbRYJKwYBBAHaRw8BAQdAjP0UvIeNie2jrp2fZ0vjm4HCfkZzzVi0i09/
@@ -28,3 +29,4 @@ pKrDAAoJEGrsXxeFg7B0vwgA/RYyFU5CVQ4KOc/xQaW7CVfhRvcdu9HS2Ira4p1q
 OKm3AP9O0qgWiQTFf91YtppMgg+OqKoWZ5PjSCs48dYNne8OBg==
 =FGo3
 -----END PGP PUBLIC KEY BLOCK-----
+```
