@@ -105,22 +105,12 @@ class TargetConverter(commands.MemberConverter, app_commands.Transformer):
         return value
 
 
-class PosReason(Flags):
+class ApplyFlags(Flags):
     reason: str | None = commands.flag(
         aliases=["r"],
         default=None,
         positional=True,
     )
-
-
-class Channel(Flags):
-    channel: GuildChannel | None = commands.flag(
-        aliases=["c"],
-        default=None,
-    )
-
-
-class ApplyFlags(PosReason):
     expiration: datetime | None = commands.flag(
         aliases=["e", "until"],
         default=None,
@@ -132,9 +122,34 @@ class ApplyFlags(PosReason):
     )
 
 
-class ChannelMuteApplyFlags(ApplyFlags, Channel):
-    pass
+class ChannelMuteApplyFlags(Flags):
+    reason: str | None = commands.flag(
+        aliases=["r"],
+        default=None,
+        positional=True,
+    )
+    expiration: datetime | None = commands.flag(
+        aliases=["e", "until"],
+        default=None,
+        converter=DatetimeConverter(prefer_dates_from="future"),
+    )
+    silent: bool = commands.flag(
+        aliases=["nodm", "quiet"],
+        default=False,
+    )
+    channel: GuildChannel | None = commands.flag(
+        aliases=["c"],
+        default=None,
+    )
 
 
-class ChannelMuteLiftFlags(PosReason, Channel):
-    pass
+class ChannelMuteLiftFlags(Flags):
+    reason: str | None = commands.flag(
+        aliases=["r"],
+        default=None,
+        positional=True,
+    )
+    channel: GuildChannel | None = commands.flag(
+        aliases=["c"],
+        default=None,
+    )

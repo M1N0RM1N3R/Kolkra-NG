@@ -1,18 +1,16 @@
 import logging
 from abc import ABC, abstractmethod
-from datetime import timedelta
 from typing import TYPE_CHECKING
 
-from beanie import Document
 from beanie.odm.queries.find import FindMany
-from beanie.operators import NE, Eq
+from beanie.operators import Eq
 from discord import Embed, Member
 from discord.utils import format_dt, utcnow
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 from kolkra_ng.bot import Kolkra
-from kolkra_ng.db_types import UtcDateTime
+from kolkra_ng.db_types import KolkraDocument, UtcDateTime
 from kolkra_ng.utils import audit_log_reason_template
 
 if TYPE_CHECKING:
@@ -27,7 +25,7 @@ class ModActionLift(BaseModel):
     timestamp: UtcDateTime = Field(default_factory=utcnow)
 
 
-class ModAction(Document, ABC):
+class ModAction(KolkraDocument, ABC):
     """
     To implement:
     - noun
@@ -38,8 +36,6 @@ class ModAction(Document, ABC):
     """
 
     class Settings:
-        use_cache = True
-        cache_expiration_time = timedelta(seconds=10)
         is_root = True
 
     guild_id: int
@@ -170,7 +166,9 @@ class ModAction(Document, ABC):
 
     @classmethod
     def fetch_existing_for(
-        cls, guild_id: int, target_id: int, *, include_lifted: bool = False
+        cls, guild_id: int, target_id: int, *, include_lifted: bool = False, **kwargs
     ) -> FindMany[Self]:
-        cur = cls.find(Eq(cls.guild_id, guild_id), Eq(cls.target_id, target_id))
-        return cur if include_lifted else cur.find(NE(cls.lifted, None))
+        cur = cls.find(
+            Eq(cls.guild_id, guild_id), Eq(cls.target_id, target_id), **kwargs
+        )
+        return cur if include_lifted else cur.find(Eq(cls.lifted, None))

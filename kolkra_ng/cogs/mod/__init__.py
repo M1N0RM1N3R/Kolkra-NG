@@ -69,6 +69,9 @@ async def try_dm(bot: Kolkra, user_id: int, **kwargs) -> Message | None:
         log.warn("Can't get DM channel for user ID %s", user_id)
 
 
+MOD_ACTION_MODELS = [ServerBan, Softban, ChannelMute, ModWarning]
+
+
 class ModCog(commands.Cog):
     def __init__(self, bot: Kolkra) -> None:
         super().__init__()
@@ -91,11 +94,13 @@ class ModCog(commands.Cog):
         )
 
     async def cog_load(self) -> None:
-        await self.bot.init_db_models(ModAction)
-        async for action in ModAction.find(NE(ModAction.expiration, None)):
-            self.__lift_tasks[action.id] = self.bot.loop.create_task(
-                self.__delayed_lift(action)
-            )
+        await self.bot.init_db_models(*MOD_ACTION_MODELS)
+        for cls in MOD_ACTION_MODELS:
+            async for action in cls.find(NE(cls.expiration, None)):
+                log.info("Creating lift task for %s", action)
+                self.__lift_tasks[action.id] = self.bot.loop.create_task(
+                    self.__delayed_lift(action)
+                )
 
     async def cog_unload(self) -> None:
         for k in list(self.__lift_tasks):
@@ -106,7 +111,7 @@ class ModCog(commands.Cog):
         action: ModAction,
         silent: bool = False,
     ) -> None:
-        await action.insert()  # pyright: ignore [reportCallIssue]
+        await action.save()
         if not silent:
             await try_dm(
                 self.bot,
@@ -143,7 +148,9 @@ class ModCog(commands.Cog):
             task.cancel()
         action.lifted = ModActionLift(lifter_id=author.id, reason=lift_reason)
         await action.save()
-        await self.bot.webhooks.send(self.bot.log_channel, embed=action.log_embed())
+        await self.bot.webhooks.send(
+            self.bot.log_channel, embed=await action.log_embed()
+        )
 
     @commands.hybrid_command(aliases=["purge", "clean"])
     @commands.guild_only()
@@ -418,7 +425,7 @@ class ModCog(commands.Cog):
         if not ctx.guild or isinstance(channel, PrivateChannel):
             raise commands.NoPrivateMessage()
         if await ChannelMute.fetch_existing_for(
-            ctx.guild.id, target.id, channel.id
+            ctx.guild.id, target.id, channel_id=channel.id
         ).first_or_none():
             await ctx.respond(
                 embed=InfoEmbed(
@@ -578,7 +585,7 @@ class ModCog(commands.Cog):
     @commands.guild_only()
     @is_staff_level(StaffLevel.arbit)
     async def remove_warning(
-        self, ctx: KolkraContext, warning_id: str, *, reason: str | None
+        self, ctx: KolkraContext, warning_id: str, *, reason: str | None = None
     ) -> None:
         """Remove a warning based on its ID.
         If a user was banned for accumulating 5 warnings, this will not automatically unban them.
@@ -602,6 +609,7 @@ class ModCog(commands.Cog):
                     description="That warning has already been lifted.",
                 )
             )
+            return
         await self.do_lift(action, ctx.author, reason)
         count = await action.cached_count(refresh=True)
         await ctx.respond(
@@ -622,10 +630,11 @@ class ModCog(commands.Cog):
             raise commands.NoPrivateMessage()
         await ctx.defer()
         embeds = []
-        async for action in ModAction.fetch_existing_for(
-            ctx.guild.id, user.id, include_lifted=True
-        ):
-            embeds.append(await action.log_embed())
+        for cls in MOD_ACTION_MODELS:
+            async for action in cls.fetch_existing_for(
+                ctx.guild.id, user.id, include_lifted=True
+            ):
+                embeds.append(await action.log_embed())
         if embeds:
             await Pager(group_embeds(embeds)).respond(ctx)
             return
