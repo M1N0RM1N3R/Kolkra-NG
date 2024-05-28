@@ -74,9 +74,13 @@ async def try_dm(bot: Kolkra, user_id: int, **kwargs) -> Message | None:
 
 MOD_ACTION_MODELS = [ServerBan, Softban, ChannelMute, ModWarning]
 
+
 async def fetch_ban(target: Snowflake, guild: Guild) -> BanEntry | None:
-    try: return await guild.fetch_ban(target)
-    except NotFound: return None
+    try:
+        return await guild.fetch_ban(target)
+    except NotFound:
+        return None
+
 
 class ModCog(commands.Cog):
     def __init__(self, bot: Kolkra) -> None:
@@ -239,9 +243,6 @@ class ModCog(commands.Cog):
             flags.silent,
         )
         await ctx.respond(embed=OkEmbed(description=f"{target} is now b&."))
-    
-    @commands.hybrid_command()
-
 
     @commands.hybrid_command(aliases=["unyeet"], rest_is_raw=True)
     @commands.guild_only()
@@ -561,7 +562,6 @@ class ModCog(commands.Cog):
                 ctx.guild.id, user.id
             ).to_list()
         ):
-
             await ctx.respond(
                 embed=InfoEmbed(
                     title="No warnings found",

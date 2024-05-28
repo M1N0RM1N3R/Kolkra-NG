@@ -28,6 +28,7 @@ phonenumbers = "^8.13.36"
 pytimeparse = "^1.1.8"
 python-frontmatter = "^1.1.0"
 pint = ">=0.7" # Versions prior to this use eval for parsing string input--BAD NEWS
+tomli = "^2.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
