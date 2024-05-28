@@ -37,6 +37,7 @@ class Kolkra(commands.Bot):
         )
         self.help_command = KolkraHelp()
         self.webhooks = WebhookManager(self)
+        self.owner_ids = self.config.devs
 
     async def init_db_models(self, *models: type[Document]) -> None:
         log.info(

@@ -42,6 +42,7 @@ class Config(BaseModel):
     staff_roles: dict[StaffLevel, StaffRoles]
     named_roles: dict[str, int] = Field(default_factory=dict)
     cogs: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    devs: list[int] | None = None
 
     @field_validator("bot_token", mode="after")
     @classmethod

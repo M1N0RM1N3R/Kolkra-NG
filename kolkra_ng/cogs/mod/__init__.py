@@ -5,17 +5,20 @@ import re
 from beanie import PydanticObjectId
 from beanie.operators import NE
 from discord import (
+    BanEntry,
     Color,
     Embed,
     File,
     Forbidden,
+    Guild,
     Member,
     Message,
+    NotFound,
     Object,
     PartialMessageable,
     User,
 )
-from discord.abc import PrivateChannel
+from discord.abc import PrivateChannel, Snowflake
 from discord.ext import commands
 from discord.utils import format_dt, sleep_until
 
@@ -71,6 +74,9 @@ async def try_dm(bot: Kolkra, user_id: int, **kwargs) -> Message | None:
 
 MOD_ACTION_MODELS = [ServerBan, Softban, ChannelMute, ModWarning]
 
+async def fetch_ban(target: Snowflake, guild: Guild) -> BanEntry | None:
+    try: return await guild.fetch_ban(target)
+    except NotFound: return None
 
 class ModCog(commands.Cog):
     def __init__(self, bot: Kolkra) -> None:
@@ -214,7 +220,7 @@ class ModCog(commands.Cog):
         """Ban a user from the server from within Discord."""
         if not ctx.guild:
             raise commands.NoPrivateMessage()
-        if await ctx.guild.fetch_ban(target):
+        if await fetch_ban(target, ctx.guild):
             await ctx.respond(
                 embed=InfoEmbed(
                     title="User already banned",
@@ -233,6 +239,9 @@ class ModCog(commands.Cog):
             flags.silent,
         )
         await ctx.respond(embed=OkEmbed(description=f"{target} is now b&."))
+    
+    @commands.hybrid_command()
+
 
     @commands.hybrid_command(aliases=["unyeet"], rest_is_raw=True)
     @commands.guild_only()
@@ -252,7 +261,7 @@ class ModCog(commands.Cog):
             guild_id=ctx.guild.id, target_id=target.id
         ).first_or_none():
             await self.do_lift(action, ctx.author, reason)
-        elif await ctx.guild.fetch_ban(target):
+        elif await fetch_ban(target, ctx.guild):
             await ctx.guild.unban(
                 target,
                 reason=audit_log_reason_template(
@@ -543,7 +552,7 @@ class ModCog(commands.Cog):
         ):
             await ctx.respond(
                 embed=AccessDeniedEmbed(
-                    description="You must be at Arbit to list other users' warnings."
+                    description="You must be at least Arbit to list other users' warnings."
                 )
             )
             return
@@ -561,7 +570,8 @@ class ModCog(commands.Cog):
                         if ctx.author == user
                         else f"{user.mention} has no active warnings."
                     ),
-                )
+                ),
+                ephemeral=True,
             )
             return
         await Pager(
@@ -579,7 +589,7 @@ class ModCog(commands.Cog):
                 ]
             ),
             ctx.author,
-        ).respond(ctx)
+        ).respond(ctx, ephemeral=True)
 
     @commands.hybrid_command(aliases=["rmwarn"], rest_is_raw=True)
     @commands.guild_only()
@@ -636,13 +646,14 @@ class ModCog(commands.Cog):
             ):
                 embeds.append(await action.log_embed())
         if embeds:
-            await Pager(group_embeds(embeds)).respond(ctx)
+            await Pager(group_embeds(embeds)).respond(ctx, ephemeral=True)
             return
         await ctx.respond(
             embed=InfoEmbed(
                 title="No entries found",
                 description=f"{user.mention}'s rap sheet is just a blank piece of paper. Right back in the printer it goes, then...",
-            ).set_footer(text="Note: This only applies to info in my own database.")
+            ).set_footer(text="Note: This only applies to info in my own database."),
+            ephemeral=True,
         )
 
     @commands.Cog.listener("on_message")
@@ -656,7 +667,7 @@ class ModCog(commands.Cog):
             return
         alt_id, main_id = match.groups()
         try:
-            if not (ban := await message.guild.fetch_ban(Object(main_id))):
+            if not (ban := await fetch_ban(Object(main_id), message.guild)):
                 return
         except Forbidden:
             return  # We don't have permission to ban them anyway

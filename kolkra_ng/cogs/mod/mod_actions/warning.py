@@ -2,7 +2,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import humanize
-from discord import Embed, Member
+from discord import Color, Embed, Member
 from pydantic import PrivateAttr
 
 from kolkra_ng.bot import Kolkra
@@ -37,6 +37,7 @@ class ModWarning(ModAction):
         return Embed(
             title="Warning",
             description="You have been issued a warning in the Splatfest server.",
+            color=Color.yellow(),
         ).set_thumbnail(url=icons8("error"))
 
     async def dm_embed(self, bot: Kolkra) -> Embed:
@@ -65,7 +66,7 @@ class ModWarning(ModAction):
         return embed
 
     def log_base(self) -> Embed:
-        return Embed(title="Warning").set_thumbnail(url=icons8("error"))
+        return Embed(title="Warning", color=Color.yellow()).set_thumbnail(url=icons8("error"))
 
     async def log_embed(self) -> Embed:
         count = await self.cached_count()
