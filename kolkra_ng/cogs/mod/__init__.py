@@ -620,9 +620,19 @@ class ModCog(commands.Cog):
                 )
             )
             return
-        await TargetConverter("remove warnings from").check(
-            ctx.bot, ctx.author, action.target
-        )
+        if not (
+            target := ctx.guild.get_member(action.target_id)
+            or await ctx.guild.fetch_member(action.target_id)
+        ):
+            await ctx.respond(
+                embed=WarningEmbed(
+                    title="Target not found in server",
+                    description=f"<@{action.target_id}> (the user this warning was issued against) could not be found here--they probably left (or got banned), or the user ID may not be valid.\n"
+                    "Because of this, I can't check to make sure you have the appropriate permissions to remove warnings from them.",
+                )
+            )
+            return
+        await TargetConverter("remove warnings from").check(ctx.bot, ctx.author, target)
         await self.do_lift(action, ctx.author, reason)
         count = await action.cached_count(refresh=True)
         await ctx.respond(

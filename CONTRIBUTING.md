@@ -68,7 +68,7 @@ poetry install
 poetry shell
 ```
 
-4. Install pre-commit to run linters/formatters at commit time:
+4. Install pre-commit to run various checks at commit time:
 
 ```bash
 poetry run pre-commit install
@@ -88,18 +88,18 @@ Now you can make your changes locally.
 make check
 ```
 
-7. Test all features in an isolated environment to help catch any bugs.
+7. Test all features you added or changed in an isolated environment to help catch any bugs.
 
 Create a configuration file at `config.toml`. `config.EXAMPLE.toml` provides a template and explanation for what fields you should provide.
 
-You will also need to set up MongoDB, whether on your local machine or through a cloud provider.
+You will also need to set up MongoDB, whether on your local machine or through a cloud provider like Atlas.
 If you have Docker installed on your machine, you can quickly spin up an ephemeral MongoDB instance with an included Makefile script.
 
 ```bash
 make start-mongo
 ```
 
-7.  Commit your changes and push your branch to GitHub:
+8.  Commit your changes and push your branch to GitHub:
 
 ```bash
 git add .
@@ -107,9 +107,9 @@ git commit -m "Your detailed description of your changes."
 git push origin name-of-your-bugfix-or-feature
 ```
 
-8. Submit a pull request through the GitHub website.
+9. Submit a pull request through the GitHub website.
 
 ## Conventional Commits
 
 Contributors are strongly encouraged, but not required, to follow [Conventional Commits](https://www.conventionalcommits.org/) in your commit messages.
-If you use VSCode, you should use the [Conventional Commits](https://marketplace.visualstudio.com/items?itemName=vivaxy.vscode-conventional-commits) extension to help you format your commit messages properly.
+If you use Visual Studio Code (or VSCodium), you should use the [Conventional Commits](https://marketplace.visualstudio.com/items?itemName=vivaxy.vscode-conventional-commits) extension to help you format your commit messages properly.
