@@ -4,12 +4,13 @@ from datetime import datetime
 from hashlib import sha256
 from typing import Any
 
+import pint
 from discord import Message, TextChannel, Thread, VoiceChannel
 from discord.ext import commands
 from discord.utils import TimestampStyle, format_dt, utcnow
 
 from kolkra_ng.bot import Kolkra, KolkraContext
-from kolkra_ng.converters import DatetimeConverter, Flags
+from kolkra_ng.converters import DatetimeConverter, Flags, SimpleConverter
 from kolkra_ng.embeds import ErrorEmbed, OkEmbed
 
 
@@ -33,10 +34,25 @@ class RandomLanIpFlags(Flags):
     )
 
 
+class QuantityConverter(SimpleConverter[pint.Quantity]):
+    async def parse(self, argument: str, *, bot: Kolkra) -> pint.Quantity:
+        return bot.typed_get_cog(
+            ToolsCog
+        ).ureg.Quantity(  # pyright: ignore [reportOptionalMemberAccess, reportReturnType]
+            argument
+        )
+
+    async def generate_autocomplete(self, value: pint.Quantity, *, bot: Kolkra) -> str:
+        return f"{value:P}"
+
+
 class ToolsCog(commands.Cog):
     def __init__(self, bot: Kolkra) -> None:
         super().__init__()
         self.bot = bot
+        self.ureg = pint.UnitRegistry(
+            autoconvert_offset_to_baseunit=True, default_as_delta=False
+        )
 
     @commands.hybrid_command(aliases=["lanip"])
     async def random_lan_ip(
@@ -102,6 +118,22 @@ class ToolsCog(commands.Cog):
                 name="Preview", value=format_dt(when, style)
             ),
             ephemeral=True,
+        )
+
+    @commands.hybrid_command(rest_is_raw=True)
+    async def convert(
+        self,
+        ctx: KolkraContext,
+        *,
+        quantity: pint.Quantity = commands.parameter(converter=QuantityConverter()),
+    ) -> None:
+        """Convert a measurement into several different units.
+        Input is parsed and converted using the [pint](https://pint.readthedocs.io/en/stable/getting/tutorial.html#string-parsing) library.
+        """
+        pq = self.ureg.Quantity(quantity)
+        results = "\n".join(f"- {pq.to(u):~P}" for u in pq.compatible_units())
+        await ctx.respond(
+            embed=OkEmbed(description=f"{pq:~P} is equivalent to:\n{results}")
         )
 
 

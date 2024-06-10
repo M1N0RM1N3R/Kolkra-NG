@@ -1,10 +1,17 @@
 """Miscellaneous functions/classes that I couldn't think of a better place to put."""
 
-from collections.abc import Mapping
-from typing import TypeVar
+from abc import ABC
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
+from typing import Annotated, Any, Generic, ParamSpec, TypeVar
 
+from beanie import Link
 from discord import Member, Role
 from discord.ext import commands
+from pydantic import Field
+from typing_extensions import Never
+
+from kolkra_ng.db_types import DocumentT, KolkraDocument
 
 T = TypeVar("T")
 
@@ -81,5 +88,57 @@ async def update_member_roles(
         if role >= role.guild.me.top_role:
             raise RoleAboveBot(role)
         (add if state else remove).append(role)
-    await target.add_roles(*(i for i in add), **kwargs)
-    await target.remove_roles(*(i for i in remove), **kwargs)
+    await target.add_roles(*add, **kwargs)
+    await target.remove_roles(*remove, **kwargs)
+
+
+InT = TypeVar("InT")
+OutT = TypeVar("OutT")
+ParamT = ParamSpec("ParamT")
+
+
+@dataclass
+class NoTransformerFound(TypeError):
+    transformers_for_types: set[type]
+    received_type: type
+
+
+def validate_by_input_type(
+    transformers: Mapping[type, Callable[..., OutT]]
+) -> Callable[..., OutT]:
+    """Returns a function that runs objects through a transformer function based on its type.
+
+    Args:
+        transformers (Mapping[type, Callable[..., OutT]]): A mapping of types to functions that take an instance of the key type and return the output type
+
+    Returns:
+        Callable[..., OutT]: The combined validator function.
+    """
+
+    def inner(i: Any) -> OutT:
+        for t, fn in transformers.items():
+            if isinstance(i, t):
+                return fn(i)
+        raise NoTransformerFound(set(transformers.keys()), type(i))
+
+    return inner
+
+
+def raise_exc(exc: Exception) -> Never:
+    raise exc
+
+
+class Match(KolkraDocument, Generic[DocumentT], ABC):
+    teams: list[Annotated[set[Link[DocumentT]], Field(min_length=1, max_length=4)]]
+    winner_index: int
+
+    async def check_valid(self) -> None:
+        if self.winner_index is not None and self.winner_index not in range(
+            len(self.teams)
+        ):
+            raise IndexError(self)
+
+
+# https://stackoverflow.com/a/952952
+def flatten(xss: Iterable[Iterable[T]]) -> Iterable[T]:
+    return (x for xs in xss for x in xs)

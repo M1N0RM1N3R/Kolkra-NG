@@ -4,17 +4,17 @@ from datetime import datetime, timedelta
 from typing import Annotated, Any
 
 import humanize
-from beanie import Document, Indexed
+from beanie import Indexed
 from beanie.operators import Eq, In
 from discord import Member, Message, Role
 from discord.ext import commands
 from discord.utils import format_dt, utcnow
-from pydantic import BaseModel
 from typing_extensions import Self
 
 from kolkra_ng.bot import Kolkra, KolkraContext
 from kolkra_ng.checks import is_staff_level
 from kolkra_ng.converters import Flags, TimeDeltaConverter
+from kolkra_ng.db_types import KolkraDocument, RoleRepr
 from kolkra_ng.embeds import (
     AccessDeniedEmbed,
     InfoEmbed,
@@ -29,23 +29,6 @@ from kolkra_ng.views.confirm import Confirm
 from kolkra_ng.views.pager import Pager, group_embeds
 
 log = logging.getLogger(__name__)
-
-
-class RoleRepr(BaseModel):
-    guild_id: Annotated[int, Indexed()]
-    role_id: int
-
-    @classmethod
-    def _from(cls, role: Role) -> Self:
-        return cls(guild_id=role.guild.id, role_id=role.id)
-
-    async def get(self, bot: Kolkra) -> Role | None:
-        return (
-            bot.get_guild(self.guild_id) or await bot.fetch_guild(self.guild_id)
-        ).get_role(self.role_id)
-
-    def __hash__(self) -> int:
-        return hash((self.guild_id, self.role_id))
 
 
 # https://adamj.eu/tech/2021/10/13/how-to-create-a-transparent-attribute-alias-in-python/
@@ -63,7 +46,7 @@ class Alias:
         setattr(obj, self.source_name, value)
 
 
-class PingRateLimit(Document):
+class PingRateLimit(KolkraDocument):
     """A Beanie representation of a rate limit with methods borrowed from `commands.Cooldown`.
     I'm so sorry...
     """
@@ -194,16 +177,19 @@ class PingRateLimitsCog(commands.Cog):
     async def on_message(self, message: Message) -> None:
         if not message.guild:
             return
-        pinged_role_ids = [role.id for role in message.role_mentions]
         to_delete = []
         bad_pings = []
         async for rl in PingRateLimit.find(
             Eq(PingRateLimit.role_repr.guild_id, message.guild.id)
         ):
             if not (role := await rl.role_repr.get(self.bot)):
+                log.info(
+                    "Role %s doesn't seem to exist anymore--rate limit marked for deletion.",
+                    rl.role_repr,
+                )
                 to_delete.append(rl)
                 continue
-            if role.id in pinged_role_ids:
+            if role in message.role_mentions:
                 rl.update_rate_limit()
                 await rl.save()
             if rl.get_tokens() > 0:

@@ -467,7 +467,7 @@ class ModCog(commands.Cog):
     async def channel_unmute(
         self,
         ctx: KolkraContext,
-        target: Member,
+        target: Member = commands.parameter(converter=TargetConverter("unmute")),
         *,
         flags: ChannelMuteLiftFlags,
     ) -> None:
@@ -540,7 +540,7 @@ class ModCog(commands.Cog):
     @commands.hybrid_command(aliases=["warns"])
     @commands.guild_only()
     async def list_warnings(
-        self, ctx: KolkraContext, user: Member = commands.Author
+        self, ctx: KolkraContext, user: User = commands.Author
     ) -> None:
         """List active warnings for yourself or another user.
         Anyone can list their own warnings, Arbits+ can list warnings of other users.
@@ -620,6 +620,9 @@ class ModCog(commands.Cog):
                 )
             )
             return
+        await TargetConverter("remove warnings from").check(
+            ctx.bot, ctx.author, action.target
+        )
         await self.do_lift(action, ctx.author, reason)
         count = await action.cached_count(refresh=True)
         await ctx.respond(

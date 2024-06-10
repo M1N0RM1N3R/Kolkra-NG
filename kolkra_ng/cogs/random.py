@@ -1,7 +1,7 @@
 import asyncio
 import random
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import humanize
 from discord import Embed, Member, Message, Object, Thread
@@ -15,6 +15,7 @@ from kolkra_ng.checks import is_staff_level
 from kolkra_ng.context import KolkraContext
 from kolkra_ng.embeds import InfoEmbed, OkEmbed, icons8
 from kolkra_ng.enums.staff_level import StaffLevel
+from kolkra_ng.utils import audit_log_reason_template
 from kolkra_ng.webhooks import SupportsWebhooks
 
 
@@ -30,12 +31,17 @@ class RandomCog(commands.Cog):
         self.bot = bot
         self.config = RandomConfig(**bot.config.cogs.get(self.__cog_name__, {}))
 
+    _last_flare_up: datetime | None = None
+
     @commands.Cog.listener("on_message")
     async def rhymitis(self, message: Message) -> None:
         if message.author.id == 999714812068110436 and message.mention_everyone:  # Kyro
-            await message.reply(
-                "Oh no! Kyro's chronic at-everyone-itis is flaring up again!"
-            )
+            msg = "Oh no! Kyro's chronic at-everyone-itis is flaring up again!"
+            now = utcnow()
+            if self._last_everyone_ping:
+                msg += f" (His last flare-up was {humanize.precisedelta(now - self._last_everyone_ping)} ago!)"
+            await message.reply(msg)
+            self._last_everyone_ping = utcnow()
 
     @commands.Cog.listener("on_message")
     async def at_someone(self, message: Message) -> None:
@@ -112,13 +118,20 @@ class RandomCog(commands.Cog):
             ).set_thumbnail(url=icons8("birthday-cake")),
         )
         if self.config.birthday_role:
-            await birthday_boi.add_roles(Object(self.config.birthday_role))
+            o = Object(self.config.birthday_role)
+            await birthday_boi.add_roles(
+                o,
+                reason=audit_log_reason_template(
+                    author_name=ctx.author.name,
+                    author_id=ctx.author.id,
+                    reason="It's their birthday!",
+                ),
+            )
             self.bot.schedule(
-                self.bot.http.remove_role,
+                birthday_boi.remove_roles,
                 utcnow() + timedelta(days=1),
-                birthday_boi.guild.id,
-                birthday_boi.id,
-                self.config.birthday_role,
+                o,
+                reason="Birthday party's over...",
             )
 
     @commands.hybrid_command(aliases=["8ball"], rest_is_raw=True)

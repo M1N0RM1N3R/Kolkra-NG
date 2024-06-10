@@ -25,6 +25,7 @@ from pydantic_extra_types.phone_numbers import PhoneNumber
 from wonderwords.random_word import RandomWord
 
 from kolkra_ng.bot import Kolkra
+from kolkra_ng.utils import validate_by_input_type
 
 log = logging.getLogger(__name__)
 
@@ -122,9 +123,7 @@ class NtfyLoggingConfig(BaseModel):
     minimum_level: Annotated[
         int,
         PlainValidator(
-            lambda value: (
-                value if isinstance(value, int) else logging.getLevelName(value)
-            )
+            validate_by_input_type({int: lambda x: x, str: logging.getLevelName})
         ),
     ] = logging.WARNING
     topic: Secret[str] = Field(

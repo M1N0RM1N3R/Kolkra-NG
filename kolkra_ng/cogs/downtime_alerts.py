@@ -44,7 +44,7 @@ class DowntimeAlertsCog(commands.Cog):
         if after.id not in self.config.bots:
             return
         now = utcnow()
-        if after.status == Status.offline:
+        if before.status != Status.offline and after.status == Status.offline:
             self.__downtimes[after.id] = now
             await self.bot.webhooks.send(
                 self.channel,
@@ -55,7 +55,7 @@ class DowntimeAlertsCog(commands.Cog):
                     timestamp=now,
                 ),
             )
-        elif before.status == Status.offline:
+        elif before.status == Status.offline and after.status != Status.offline:
             await self.bot.webhooks.send(
                 self.channel,
                 embed=OkEmbed(

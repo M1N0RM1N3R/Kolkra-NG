@@ -1,6 +1,8 @@
 from typing import Literal
 
 from discord import (
+    Color,
+    Embed,
     ForumChannel,
     Game,
     Member,
@@ -16,7 +18,7 @@ from kolkra_ng.bot import Kolkra
 from kolkra_ng.checks import is_staff_level
 from kolkra_ng.context import KolkraContext
 from kolkra_ng.converters import Flags, unicode_emoji_converter
-from kolkra_ng.embeds import AccessDeniedEmbed, ErrorEmbed, InfoEmbed, OkEmbed
+from kolkra_ng.embeds import AccessDeniedEmbed, ErrorEmbed, InfoEmbed, OkEmbed, icons8
 from kolkra_ng.enums.staff_level import StaffLevel
 from kolkra_ng.utils import audit_log_reason_template, update_member_roles
 
@@ -203,6 +205,14 @@ class AdminCog(commands.Cog):
         )  # Remove None from the dict in case any configured roles don't exist
         await update_member_roles(
             update, user, reason=alr  # pyright: ignore [reportArgumentType]
+        )
+        await ctx.bot.webhooks.send(
+            ctx.bot.log_channel,
+            embed=Embed(title="Staff Promotion", color=Color.gold())
+            .set_thumbnail(url=icons8("corporal-cpl"))
+            .add_field(name="User", value=user.mention)
+            .add_field(name="Promoted by", value=ctx.author.mention)
+            .add_field(name="To level", value=to.name),
         )
 
         await ctx.respond(
