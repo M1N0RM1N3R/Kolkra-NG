@@ -38,10 +38,10 @@ class RandomCog(commands.Cog):
         if message.author.id == 999714812068110436 and message.mention_everyone:  # Kyro
             msg = "Oh no! Kyro's chronic at-everyone-itis is flaring up again!"
             now = utcnow()
-            if self._last_everyone_ping:
-                msg += f" (His last flare-up was {humanize.precisedelta(now - self._last_everyone_ping)} ago!)"
+            if self._last_flare_up:
+                msg += f" (His last flare-up was {humanize.precisedelta(now - self._last_flare_up)} ago!)"
             await message.reply(msg)
-            self._last_everyone_ping = utcnow()
+            self._last_flare_up = utcnow()
 
     @commands.Cog.listener("on_message")
     async def at_someone(self, message: Message) -> None:
