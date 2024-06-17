@@ -66,7 +66,9 @@ class ModWarning(ModAction):
         return embed
 
     def log_base(self) -> Embed:
-        return Embed(title="Warning", color=Color.yellow()).set_thumbnail(url=icons8("error"))
+        return Embed(title="Warning", color=Color.yellow()).set_thumbnail(
+            url=icons8("error")
+        )
 
     async def log_embed(self) -> Embed:
         count = await self.cached_count()

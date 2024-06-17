@@ -28,12 +28,15 @@ pytimeparse = "^1.1.8"
 python-frontmatter = "^1.1.0"
 pint = ">=0.7" # Versions prior to this use eval for parsing string input--BAD NEWS
 tomli = "^2.0.1"
+urlextract = "^1.9.0"
+pycountry = "^24.6.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
 pre-commit = "^3.4.0"
 pyright = "^1.1.355"
 matplotlib = "^3.8.4"
+black = "^24.4.2"
 
 [tool.pyright]
 typeCheckingMode = "standard"

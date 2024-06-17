@@ -29,7 +29,8 @@ class Kolkra(commands.Bot):
     def __init__(self, config: Config) -> None:
         super().__init__(
             command_prefix=commands.when_mentioned_or(";"),
-            intents=Intents.default() | Intents(members=True, message_content=True),
+            intents=Intents.default()
+            | Intents(members=True, message_content=True, presences=True),
         )
         self.config = config
         self.motor = AsyncIOMotorClient(
@@ -83,6 +84,8 @@ class Kolkra(commands.Bot):
             )
             try:
                 await self.load_extension(module)
+            except NotImplementedError:
+                log.info("Skipped unfinished module %s", module)
             except Exception as e:
                 log.warning("Failed to load module %s", module, exc_info=e)
             else:

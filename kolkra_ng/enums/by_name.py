@@ -36,6 +36,7 @@ E = TypeVar("E", bound=EnumMeta)
 
 
 def by_name(cls: E) -> E:
+    """Decorator to make Pydantic handle an enum by name rather than by value."""
 
     cls.__get_pydantic_core_schema__ = (  # pyright: ignore # noqa: PGH003
         types.MethodType(__get_pydantic_core_schema__, cls)
