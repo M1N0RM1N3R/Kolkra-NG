@@ -74,7 +74,16 @@ class TranslateCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: Message) -> None:
-        if message.author.bot or not message.content:
+        prefixes = await self.bot.get_prefix(message)
+        if isinstance(prefixes, str):
+            prefixes = [prefixes]
+        if (
+            message.author.bot  # Ignore bots
+            or not message.content  # Ignore empty messages
+            or any(
+                message.content.startswith(p) for p in prefixes
+            )  # Ignore command invocations
+        ):
             return
         async with self.session.post(
             "/detect",
