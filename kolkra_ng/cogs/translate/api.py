@@ -1,8 +1,11 @@
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, NonNegativeInt
-from pydantic_extra_types.language_code import LanguageAlpha2
+from pydantic import BaseModel, Field, NonNegativeInt, StringConstraints
+
+# from pydantic_extra_types.language_code import LanguageAlpha2
+
+LanguageAlpha2 = Annotated[str, StringConstraints(pattern=r"[a-z]{2}")]
 
 
 class DetectRequest(BaseModel):

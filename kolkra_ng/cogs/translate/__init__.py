@@ -2,14 +2,15 @@
 """
 
 import logging
+from typing import Annotated
 from uuid import UUID
 
 from aiohttp import ClientSession
 from discord import Color, Embed, Message
 from discord.ext import commands
-from pydantic import BaseModel, Field, HttpUrl, Secret
-from pydantic_extra_types.language_code import LanguageAlpha2
+from pydantic import BaseModel, Field, HttpUrl, Secret, StringConstraints
 
+# from pydantic_extra_types.language_code import LanguageAlpha2
 from kolkra_ng.bot import Kolkra
 from kolkra_ng.cogs.translate.api import (
     DetectRequest,
@@ -21,6 +22,8 @@ from kolkra_ng.cogs.translate.api import (
 from kolkra_ng.embeds import WarningEmbed, icons8
 
 log = logging.getLogger(__name__)
+
+LanguageAlpha2 = Annotated[str, StringConstraints(pattern=r"[a-z]{2}")]
 
 
 class TranslateConfig(BaseModel):
