@@ -129,10 +129,11 @@ class TranslateCog(commands.Cog):
             )
             .add_field(
                 name="Language",
-                value=f"{self.all_languages[detected_language.language].name} -> {self.all_languages[self.config.target_language].name}",
+                value=f"{self.all_languages[detected_language.language].name} ({detected_language.confidence}% confidence) -> {self.all_languages[self.config.target_language].name}",
             )
             .set_thumbnail(url=icons8("translate-text"))
-            .set_footer(text="Machine translations may not be 100% accurate.")
+            .set_footer(text="Machine translations may not be 100% accurate."),
+            mention_author=False,
         )
 
 
