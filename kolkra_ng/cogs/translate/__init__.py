@@ -6,7 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 from aiohttp import ClientSession
-from discord import Color, Embed, Message
+from discord import Color, Embed, Member, Message
 from discord.ext import commands
 from pydantic import BaseModel, Field, HttpUrl, Secret, StringConstraints
 
@@ -31,6 +31,14 @@ class TranslateConfig(BaseModel):
         default="en",
         description="The language to translate foreign-language messages to. Defaults to 'en' (English).",
     )
+    language_roles: dict[LanguageAlpha2, int] | None = Field(
+        default=None,
+        description="IDs of roles assigned to members who speak different languages. If provided, the module will only translate messages detected to be in a language the author has the corresponding role for.",
+    )
+    ignore_channels: set[int] = Field(
+        default_factory=set, description="IDs of channels to not translate messages in."
+    )
+
     api_base_url: HttpUrl = Field(
         description="Base URL of a [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate) instance.",
     )
@@ -78,11 +86,14 @@ class TranslateCog(commands.Cog):
         if isinstance(prefixes, str):
             prefixes = [prefixes]
         if (
-            message.author.bot  # Ignore bots
+            not isinstance(message.author, Member)  # Ignore messages outside server
+            or message.author.bot  # Ignore bots
             or not message.content  # Ignore empty messages
             or any(
                 message.content.startswith(p) for p in prefixes
             )  # Ignore command invocations
+            or message.channel.id
+            in self.config.ignore_channels  # Ignore messages in ignored channels
         ):
             return
         async with self.session.post(
@@ -97,7 +108,22 @@ class TranslateCog(commands.Cog):
             resp.raise_for_status()
             detect_response = [DetectResponseItem(**item) for item in await resp.json()]
         detected_language = max(detect_response, key=lambda x: x.confidence)
-        if detected_language.language == self.config.target_language:
+        if (
+            detected_language.language == self.config.target_language
+            or (  # Ignore messages already in the target language...
+                self.config.language_roles  # ...or if language roles are configured...
+                and (
+                    not (
+                        role_id := self.config.language_roles.get(  # ...and there isn't a configured role for the detected language...
+                            detected_language.language
+                        )
+                    )
+                    or not message.author.get_role(
+                        role_id
+                    )  # ...and the author doesn't have it
+                )
+            )
+        ):
             return
         elif detected_language.language not in self.supported_languages:
             await message.reply(
