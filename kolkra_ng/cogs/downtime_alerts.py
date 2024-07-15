@@ -1,4 +1,5 @@
 import logging
+from asyncio import TimeoutError
 from datetime import datetime
 
 import humanize
@@ -15,8 +16,8 @@ log = logging.getLogger(__name__)
 
 
 class DowntimeAlertsConfig(BaseModel):
-    bots: list[int] = Field(default_factory=list)
-    ping_roles: list[int] = Field(default_factory=list)
+    bots: set[int] = Field(default_factory=set)
+    ping_roles: set[int] = Field(default_factory=set)
     channel: int | None = None
 
 
@@ -44,6 +45,16 @@ class DowntimeAlertsCog(commands.Cog):
         if after.id not in self.config.bots:
             return
         now = utcnow()
+        try:
+            await self.bot.wait_for(
+                "presence_update",
+                check=lambda b, a: before.id == a.id and before.status == a.status,
+                timeout=5,
+            )
+        except TimeoutError:
+            pass
+        else:
+            return
         if before.status != Status.offline and after.status == Status.offline:
             self.__downtimes[after.id] = now
             await self.bot.webhooks.send(
