@@ -137,7 +137,7 @@ class RandomCog(commands.Cog):
     @commands.hybrid_command(aliases=["8ball"], rest_is_raw=True)
     async def magic_8_ball(self, ctx: KolkraContext, *, question: str) -> None:
         """Ask the Magic 8-Ball a question.
-        Spoiler alert: it's not the manifestation of some omniscent being--it's just a die in some dye.
+        Spoiler alert: it's not the manifestation of some omniscient being--it's just a die in some dye.
         ||try saying that 5 times fast||
         """
         await ctx.defer()

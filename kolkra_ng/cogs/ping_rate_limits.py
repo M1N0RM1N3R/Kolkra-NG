@@ -157,7 +157,7 @@ class PingRateLimitsCog(commands.Cog):
         task = self.bot.schedule(self.reset, rate_limit.available_at, rate_limit)
         self.reset_tasks[rate_limit.role_repr] = task
 
-    async def why_isnt_my_my_ping_working(
+    async def cooldown_notice(
         self, message: Message, bad_pings: list[tuple[Role, PingRateLimit]]
     ) -> None:
         split_embed = SplitEmbed.from_single(
@@ -206,7 +206,7 @@ class PingRateLimitsCog(commands.Cog):
             ) or f"@{role.name}" in message.content:
                 bad_pings.append((role, rl))
         if bad_pings:
-            await self.why_isnt_my_my_ping_working(message, bad_pings)
+            await self.cooldown_notice(message, bad_pings)
         for rl in to_delete:
             await rl.delete()
 
@@ -240,7 +240,7 @@ class PingRateLimitsCog(commands.Cog):
         )
 
     @ping_rate_limits.command(name="reset", aliases=["clear"])
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     async def reset_cmd(
         self,
         ctx: KolkraContext,
@@ -279,7 +279,7 @@ class PingRateLimitsCog(commands.Cog):
         aliases=["setup", "new", "add", "create", "edit"],
         rest_is_raw=True,
     )
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     async def set_cmd(
         self, ctx: KolkraContext, role: Role, *, flags: RateLimitFlags
     ) -> None:
@@ -312,7 +312,7 @@ class PingRateLimitsCog(commands.Cog):
         )
 
     @ping_rate_limits.command(aliases=["del", "remove", "rm"])
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     async def delete(self, ctx: KolkraContext, role: Role) -> None:
         """Remove the ping rate limit from a role."""
         if not isinstance(ctx.author, Member):

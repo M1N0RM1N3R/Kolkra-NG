@@ -60,16 +60,16 @@ log = logging.getLogger(__name__)
 
 async def try_dm(bot: Kolkra, user_id: int, **kwargs) -> Message | None:
     if (
-        dmable := bot.get_user(user_id)
+        user_dm := bot.get_user(user_id)
         or await bot.fetch_user(user_id)
         or await bot.create_dm(Object(user_id))
     ):
         try:
-            return await dmable.send(**kwargs)
+            return await user_dm.send(**kwargs)
         except Exception as e:
-            log.warn("Couldn't send DM to %s", dmable, exc_info=exc_info(e))
+            log.warn("Couldn't send DM to %s", user_dm, exc_info=exc_info(e))
     else:
-        log.warn("Can't get DM channel for user ID %s", user_id)
+        log.warning("Can't get DM channel for user ID %s", user_id)
 
 
 MOD_ACTION_MODELS = [ServerBan, Softban, ChannelMute, ModWarning]
@@ -164,7 +164,7 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["purge", "clean"])
     @commands.guild_only()
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     @commands.bot_has_permissions(manage_messages=True)
     async def mass_delete(
         self, ctx: KolkraContext, *, flags: SelectMessageFlags
@@ -210,7 +210,7 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["yeet"])
     @commands.guild_only()
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     @commands.bot_has_permissions(ban_members=True)
     async def ban(
         self,
@@ -246,7 +246,7 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["unyeet"], rest_is_raw=True)
     @commands.guild_only()
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     @commands.bot_has_permissions(ban_members=True)
     async def unban(
         self,
@@ -341,7 +341,7 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["gentleyeet"])
     @commands.guild_only()
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     @commands.bot_has_permissions(kick_members=True)
     async def softban(
         self,
@@ -373,7 +373,7 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["ungentleyeet"], rest_is_raw=True)
     @commands.guild_only()
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     async def unsoftban(
         self,
         ctx: KolkraContext,
@@ -417,7 +417,7 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["shaddap"])
     @commands.guild_only()
-    @is_staff_level(StaffLevel.arbit)
+    @is_staff_level(StaffLevel.moderator)
     @commands.bot_has_permissions(manage_permissions=True)
     async def channel_mute(
         self,
@@ -462,7 +462,7 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["unshaddap"], rest_is_raw=True)
     @commands.guild_only()
-    @is_staff_level(StaffLevel.arbit)
+    @is_staff_level(StaffLevel.moderator)
     @commands.bot_has_permissions(manage_permissions=True)
     async def channel_unmute(
         self,
@@ -508,7 +508,7 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command()
     @commands.guild_only()
-    @is_staff_level(StaffLevel.arbit)
+    @is_staff_level(StaffLevel.moderator)
     @commands.bot_has_permissions(kick_members=True, ban_members=True)
     async def warn(
         self,
@@ -549,7 +549,7 @@ class ModCog(commands.Cog):
             raise commands.NoPrivateMessage()
         if (
             user != ctx.author
-            and (ctx.bot.get_staff_level_for(ctx.author) or 0) < StaffLevel.arbit
+            and (ctx.bot.get_staff_level_for(ctx.author) or 0) < StaffLevel.moderator
         ):
             await ctx.respond(
                 embed=AccessDeniedEmbed(
@@ -593,7 +593,7 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["rmwarn"], rest_is_raw=True)
     @commands.guild_only()
-    @is_staff_level(StaffLevel.arbit)
+    @is_staff_level(StaffLevel.moderator)
     async def remove_warning(
         self, ctx: KolkraContext, warning_id: str, *, reason: str | None = None
     ) -> None:
@@ -644,9 +644,9 @@ class ModCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["userlog"])
     @commands.guild_only()
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     async def list_mod_actions(self, ctx: KolkraContext, user: Member | User) -> None:
-        """List all mod actions issued against a user. Aaall of them, even expired/lifted ones.
+        """List all mod actions issued against a user, including expired/lifted ones.
         When a mod action issued through Kolkra expires or is manually removed, it is still retained in the database for accountability reasons. If you want to have an expired/lifted mod action removed from your record, please contact @m1n3r_spl.
         """
         if not ctx.guild:

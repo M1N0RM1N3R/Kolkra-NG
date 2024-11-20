@@ -80,7 +80,7 @@ class AdminCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["formatname"])
     @commands.guild_only()
-    @is_staff_level(StaffLevel.mod)
+    @is_staff_level(StaffLevel.moderator)
     @commands.bot_has_permissions(manage_channels=True)
     async def rename_channel(
         self, ctx: KolkraContext, *, flags: RenameChannelFlags
@@ -120,7 +120,7 @@ class AdminCog(commands.Cog):
 
     @commands.hybrid_command(aliases=["stafflevel"])
     @commands.guild_only()
-    @is_staff_level(StaffLevel.arbit)
+    @is_staff_level(min(StaffLevel))
     @commands.bot_has_permissions(manage_roles=True)
     async def promote(
         self,

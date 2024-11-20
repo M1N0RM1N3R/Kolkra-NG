@@ -19,9 +19,13 @@ build: clean-build ## Build wheel file using poetry
 clean-build: ## clean build artifacts
 	@rm -rf dist
 
-.PHONY: start-mongo
-start-mongo:
+.PHONY: docker-mongo
+docker-mongo:
 	@docker run -d --rm -p 27017:27017 mongo
+
+.PHONY: start-bot
+start-bot:
+	@poetry run python kolkra_ng/main.py
 
 .PHONY: help
 help:

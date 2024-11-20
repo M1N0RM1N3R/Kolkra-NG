@@ -166,8 +166,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Ignore the config file--it's different across different environments and contains secrets--a
+# Ignore the config files--it's different across different environments and contains secrets--a
 # double-whammy for things you don't want to be tracked in Git.
-config.toml
+config/*
+!config/.example.toml
 
 node_modules

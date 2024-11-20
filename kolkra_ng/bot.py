@@ -77,7 +77,7 @@ class Kolkra(commands.Bot):
             if path.name.startswith("__"):
                 continue
             module = (
-                path.relative_to(pkg_root)
+                path.relative_to(pkg_root.parent)
                 .as_posix()
                 .removesuffix(".py")
                 .replace("/", ".")

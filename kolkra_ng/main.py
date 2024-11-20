@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from os import environ
 from pathlib import Path
 
 import discord
@@ -26,8 +27,13 @@ log = logging.getLogger(__name__)
 
 
 async def main() -> None:
-    log.info("Parsing configuration")
-    config = Config.from_files(Path("config.toml"))
+    config_path = (
+        Path("config")
+        .joinpath(environ.get("KOLKRA_NG_CONFIG", "default"))
+        .with_suffix(".toml")
+    )
+    log.info("Parsing configuration from %s", config_path)
+    config = Config.from_files(config_path)
     log.info("Initializing client")
     bot = Kolkra(config)
 

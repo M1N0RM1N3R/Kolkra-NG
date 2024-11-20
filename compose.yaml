@@ -1,0 +1,36 @@
+name: Kolkra-NG
+
+configs:
+  bot_config:
+    file: ./config/compose.toml
+
+services:
+  bot:
+    build:
+      args:
+        CONFIG: compose
+      context: .
+    configs:
+      - source: bot_config
+        target: /code/config/compose.toml
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_signal: SIGINT
+
+  mongodb:
+    attach: false
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand({ping: 1})'"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    image: mongo:latest
+    restart: always
+    volumes:
+      - mongodb:/data/db
+
+volumes:
+  mongodb:

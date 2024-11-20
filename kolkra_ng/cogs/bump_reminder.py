@@ -28,7 +28,7 @@ MessageableChannel: TypeAlias = (
     | DMChannel
     | PartialMessageable
     | GroupChannel
-)  # Yoinked from discord.abc beacuse it's in a `if TYPE_CHECKING` block for some reason.
+)  # Copy-pasted from discord.abc because it's in a `if TYPE_CHECKING` block for some reason.
 
 
 class BumpReminderConfig(BaseModel):

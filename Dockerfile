@@ -2,7 +2,8 @@
 
 FROM python:latest
 
-ENV POETRY_VERSION=1.4 \
+
+ENV POETRY_VERSION=1.8.3 \
     POETRY_VIRTUALENVS_CREATE=false
 
 # Install poetry
@@ -18,4 +19,9 @@ RUN poetry install --no-interaction --no-ansi --no-root --no-dev
 # Copy Python code to the Docker image
 COPY kolkra_ng /code/kolkra_ng/
 
-CMD [ "python", "kolkra_ng/main.py"]
+# Set up config mount
+ARG CONFIG="default"
+VOLUME [ "/code/config" ]
+ENV KOLKRA_NG_CONFIG=${CONFIG}
+
+CMD [ "poetry", "run", "python", "-m", "kolkra_ng.main"]

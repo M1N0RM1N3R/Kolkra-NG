@@ -38,7 +38,7 @@ class QuantityConverter(SimpleConverter[pint.Quantity]):
     async def parse(self, argument: str, *, bot: Kolkra) -> pint.Quantity:
         return bot.typed_get_cog(
             ToolsCog
-        ).ureg.Quantity(  # pyright: ignore [reportOptionalMemberAccess, reportReturnType]
+        ).unit_registry.Quantity(  # pyright: ignore [reportOptionalMemberAccess, reportReturnType]
             argument
         )
 
@@ -50,7 +50,7 @@ class ToolsCog(commands.Cog):
     def __init__(self, bot: Kolkra) -> None:
         super().__init__()
         self.bot = bot
-        self.ureg = pint.UnitRegistry(
+        self.unit_registry = pint.UnitRegistry(
             autoconvert_offset_to_baseunit=True, default_as_delta=False
         )
 
@@ -130,7 +130,7 @@ class ToolsCog(commands.Cog):
         """Convert a measurement into several different units.
         Input is parsed and converted using the [pint](https://pint.readthedocs.io/en/stable/getting/tutorial.html#string-parsing) library.
         """
-        pq = self.ureg.Quantity(quantity)
+        pq = self.unit_registry.Quantity(quantity)
         results = "\n".join(f"- {pq.to(u):~P}" for u in pq.compatible_units())
         await ctx.respond(
             embed=OkEmbed(description=f"{pq:~P} is equivalent to:\n{results}")
